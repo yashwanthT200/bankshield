@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BankShield • Distributed Systems & Concurrency Observatory</title>
+  <title>BankShield • High-Concurrency Banking Demonstration</title>
   
-  <!-- Fonts: Inter & JetBrains Mono for authentic systems design -->
+  <!-- Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -17,345 +17,249 @@
   
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            brand: {
-              950: '#09090b',
-              900: '#121214',
-              850: '#18181b',
-              800: '#27272a',
-              700: '#3f3f46',
-            }
           }
         }
       }
     }
   </script>
-  <link rel="stylesheet" href="styles.css?v=20261022">
+  <link rel="stylesheet" href="styles.css?v=20261022_v3">
 </head>
-<body class="bg-[#09090b] text-[#f4f4f5] min-h-screen font-sans antialiased text-[13px] selection:bg-zinc-800 selection:text-white">
+<body class="bg-[#0b0f17] text-slate-100 min-h-screen font-sans text-sm antialiased selection:bg-blue-600 selection:text-white">
 
-  <!-- Minimalist Enterprise Header -->
-  <header class="border-b border-zinc-800/80 bg-[#0c0c0e]/90 backdrop-blur sticky top-0 z-50 px-6 py-2.5">
-    <div class="max-w-[1500px] mx-auto flex items-center justify-between">
+  <!-- Top Simple Navigation -->
+  <header class="border-b border-slate-800 bg-[#0e1422]/90 backdrop-blur sticky top-0 z-50 px-6 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
       
-      <!-- Brand & Topology Breadcrumb -->
+      <!-- Logo & Title -->
       <div class="flex items-center space-x-3">
-        <div class="h-6 w-6 rounded bg-zinc-800 border border-zinc-700 flex items-center justify-center font-mono text-[11px] font-bold text-zinc-300">
-          BS
+        <div class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-base shadow-sm">
+          🛡️
         </div>
-        <div class="flex items-center space-x-2 text-zinc-400 font-mono text-xs">
-          <span class="text-zinc-200 font-semibold tracking-tight">bankshield</span>
-          <span>/</span>
-          <span>clusters</span>
-          <span>/</span>
-          <span class="text-zinc-300">mesh-docker-v1</span>
-        </div>
-        <span class="h-3 w-[1px] bg-zinc-800"></span>
-        <div class="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>SYSTEM ACTIVE</span>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-bold text-base text-white tracking-tight">BankShield</h1>
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-950 text-blue-400 border border-blue-800/60">OS Project Demo</span>
+          </div>
+          <p class="text-xs text-slate-400">High-Concurrency Banking & Race Condition Prevention</p>
         </div>
       </div>
 
-      <!-- Center: Architectural Engine Switcher -->
-      <div class="flex items-center bg-zinc-900 border border-zinc-800 p-0.5 rounded-lg">
-        <button id="mode-naive-btn" onclick="setMode('naive')" class="px-3 py-1 rounded text-xs font-mono transition text-zinc-400 hover:text-zinc-200">
-          Single-Instance (Unsynchronized)
-        </button>
-        <button id="mode-docker-btn" onclick="setMode('dockerized')" class="px-3 py-1 rounded text-xs font-mono transition bg-zinc-800 text-zinc-100 font-medium shadow-sm">
-          Docker Microservices Mesh
-        </button>
-      </div>
-
-      <!-- Controls & Quick Actions -->
-      <div class="flex items-center space-x-2.5 font-mono text-xs">
-        <button onclick="toggleChaos()" id="chaos-btn" class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition flex items-center space-x-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400" id="chaos-indicator"></span>
-          <span id="chaos-text">Inject Worker-2 Failure</span>
-        </button>
-        <button onclick="resetSystem()" class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition">
-          Reset Ledger
-        </button>
-      </div>
+      <!-- Quick Reset Button -->
+      <button onclick="resetSystem()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition flex items-center space-x-1.5">
+        <span>🔄 Reset All Balances to $1,000</span>
+      </button>
 
     </div>
   </header>
 
-  <!-- Sub-header Architecture Alert / Mode Info -->
-  <div id="architecture-banner" class="border-b border-zinc-800/80 bg-zinc-900/40 px-6 py-2 text-xs font-mono">
-    <div class="max-w-[1500px] mx-auto flex items-center justify-between text-zinc-400">
-      <div class="flex items-center space-x-2">
-        <span class="text-zinc-500">INGRESS:</span>
-        <span class="text-zinc-300" id="arch-ingress">Nginx Layer-7 Round-Robin</span>
-        <span class="text-zinc-600">|</span>
-        <span class="text-zinc-500">LOCK:</span>
-        <span class="text-zinc-300" id="arch-lock">Redis 7 Distributed Mutex (Redlock)</span>
-        <span class="text-zinc-600">|</span>
-        <span class="text-zinc-500">PERSISTENCE:</span>
-        <span class="text-zinc-300" id="arch-db">PostgreSQL 15 (SELECT FOR UPDATE)</span>
-        <span class="text-zinc-600">|</span>
-        <span class="text-zinc-500">EVENT BROKER:</span>
-        <span class="text-zinc-300" id="arch-kafka">Apache Kafka KRaft (3 partitions)</span>
-      </div>
-      <div class="flex items-center space-x-3">
-        <span class="text-zinc-500">ISOLATION: <strong class="text-emerald-400 font-normal">STRICT_SERIALIZABLE</strong></span>
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- The 10-Second Problem Explainer Box (Super easy for the professor to read) -->
+    <div class="bg-gradient-to-r from-slate-900 to-[#121829] border border-slate-800 rounded-xl p-5 shadow-sm">
+      <div class="flex items-start justify-between gap-4">
+        <div class="space-y-1">
+          <div class="text-[11px] font-mono uppercase tracking-wider text-blue-400 font-semibold">The Core Problem We Are Solving:</div>
+          <h2 class="text-lg font-bold text-white">
+            Alice has <span class="text-emerald-400 underline decoration-emerald-500/50">$1,000.00</span> in her account. What happens when <span class="text-amber-400">200 people</span> try to withdraw $100 simultaneously?
+          </h2>
+          <p class="text-xs text-slate-400 leading-relaxed pt-1">
+            <strong>The Mathematical Rule:</strong> Only <strong>10 withdrawals</strong> ($1,000 ÷ $100) should succeed. The other 190 must be safely rejected. Watch below how a standard server fails vs how our Dockerized cluster succeeds.
+          </p>
+        </div>
       </div>
     </div>
-  </div>
 
-  <main class="max-w-[1500px] mx-auto px-6 py-5 space-y-5">
+    <!-- THE SIDE-BY-SIDE COMPARISON (The Core Demo) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-    <!-- Top Telemetry Strip -->
-    <section class="grid grid-cols-1 md:grid-cols-5 gap-3 font-mono">
-      
-      <!-- Primary Sender Account -->
-      <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-3.5">
-        <div class="flex justify-between items-baseline mb-1">
-          <span class="text-[11px] text-zinc-500 tracking-wider">ALICE (ACC-94821)</span>
-          <span class="text-[10px] text-zinc-600">SOURCE</span>
+      <!-- SYSTEM 1: NAIVE MONOLITH (Fails on purpose) -->
+      <div class="bg-[#101524] border-2 border-rose-900/40 rounded-2xl p-6 flex flex-col justify-between space-y-5 relative overflow-hidden shadow-lg">
+        <div class="absolute top-0 right-0 bg-rose-600 text-white font-mono text-[10px] uppercase font-bold px-3 py-1 rounded-bl-lg">
+          Vulnerable Monolith
         </div>
-        <div class="text-2xl font-bold tracking-tight text-zinc-100" id="sender-balance">$1,000.00</div>
-        <div class="text-[11px] text-zinc-500 mt-1 flex justify-between">
-          <span>Initial: $1,000.00</span>
-          <span id="sender-diff" class="text-zinc-400">$0.00 withdrawn</span>
+
+        <div>
+          <div class="flex items-center space-x-2 text-rose-400 text-xs font-mono font-semibold">
+            <span>❌ SYSTEM A: WITHOUT DOCKER & LOCKS</span>
+          </div>
+          <div class="text-slate-400 text-xs mt-1">Standard Node/Python app with raw database queries.</div>
+
+          <!-- Giant Balance Display -->
+          <div class="mt-4 p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-mono">Alice's Final Balance</span>
+            <div class="text-4xl font-extrabold font-mono mt-1 text-white" id="naive-balance-display">$1,000.00</div>
+            <div class="text-xs mt-2 font-mono" id="naive-status-text">
+              <span class="text-slate-400">Waiting for attack test...</span>
+            </div>
+          </div>
+
+          <!-- Outcome Metrics -->
+          <div class="grid grid-cols-2 gap-3 mt-4 text-xs font-mono">
+            <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800/80">
+              <span class="text-slate-500 block text-[11px]">Withdrawals Approved:</span>
+              <strong class="text-base text-slate-200" id="naive-approved-count">0</strong>
+              <span class="text-slate-500 text-[10px] block">(Should never exceed 10)</span>
+            </div>
+            <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800/80">
+              <span class="text-slate-500 block text-[11px]">Race Conditions:</span>
+              <strong class="text-base text-slate-200" id="naive-race-count">0</strong>
+              <span class="text-slate-500 text-[10px] block" id="naive-race-sub">No attack launched</span>
+            </div>
+          </div>
         </div>
+
+        <!-- Big Launch Button -->
+        <button onclick="runNaiveAttack()" id="btn-run-naive" class="w-full py-3 px-4 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-500 text-white transition flex items-center justify-center space-x-2 shadow-md">
+          <span>⚡ Attack System A (200 Concurrent Withdrawals)</span>
+        </button>
       </div>
 
-      <!-- Recipient Account -->
-      <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-3.5">
-        <div class="flex justify-between items-baseline mb-1">
-          <span class="text-[11px] text-zinc-500 tracking-wider">BOB (ACC-33120)</span>
-          <span class="text-[10px] text-zinc-600">TARGET</span>
+      <!-- SYSTEM 2: BANKSHIELD DOCKER CLUSTER (Wins cleanly) -->
+      <div class="bg-[#101524] border-2 border-emerald-900/40 rounded-2xl p-6 flex flex-col justify-between space-y-5 relative overflow-hidden shadow-lg">
+        <div class="absolute top-0 right-0 bg-emerald-600 text-white font-mono text-[10px] uppercase font-bold px-3 py-1 rounded-bl-lg">
+          Protected Docker Mesh
         </div>
-        <div class="text-2xl font-bold tracking-tight text-zinc-100" id="recipient-balance">$0.00</div>
-        <div class="text-[11px] text-zinc-500 mt-1 flex justify-between">
-          <span>Initial: $0.00</span>
-          <span id="recipient-diff" class="text-emerald-400">+$0.00 received</span>
+
+        <div>
+          <div class="flex items-center space-x-2 text-emerald-400 text-xs font-mono font-semibold">
+            <span>✅ SYSTEM B: BANKSHIELD CLUSTER</span>
+          </div>
+          <div class="text-slate-400 text-xs mt-1">Docker Compose + Nginx + Redis Distributed Lock + Kafka.</div>
+
+          <!-- Giant Balance Display -->
+          <div class="mt-4 p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-mono">Alice's Final Balance</span>
+            <div class="text-4xl font-extrabold font-mono mt-1 text-emerald-400" id="docker-balance-display">$1,000.00</div>
+            <div class="text-xs mt-2 font-mono text-emerald-400 font-semibold" id="docker-status-text">
+              100% Data Integrity Guaranteed
+            </div>
+          </div>
+
+          <!-- Outcome Metrics -->
+          <div class="grid grid-cols-2 gap-3 mt-4 text-xs font-mono">
+            <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800/80">
+              <span class="text-slate-500 block text-[11px]">Withdrawals Approved:</span>
+              <strong class="text-base text-emerald-400" id="docker-approved-count">0</strong>
+              <span class="text-slate-500 text-[10px] block">(Strictly stops at 10)</span>
+            </div>
+            <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800/80">
+              <span class="text-slate-500 block text-[11px]">Safely Rejected:</span>
+              <strong class="text-base text-slate-300" id="docker-rejected-count">0</strong>
+              <span class="text-slate-500 text-[10px] block">409 Insufficient Balance</span>
+            </div>
+          </div>
         </div>
+
+        <!-- Big Launch Button -->
+        <button onclick="runDockerAttack()" id="btn-run-docker" class="w-full py-3 px-4 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center justify-center space-x-2 shadow-md">
+          <span>🛡️ Attack System B (200 Concurrent Withdrawals)</span>
+        </button>
       </div>
 
-      <!-- Race Conditions Counter -->
-      <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-3.5" id="race-card">
-        <div class="flex justify-between items-baseline mb-1">
-          <span class="text-[11px] text-zinc-500 tracking-wider">RACE CONDITIONS</span>
-          <span class="text-[10px] text-zinc-600 font-mono">ANOMALIES</span>
+    </div>
+
+    <!-- DOCKER ARCHITECTURE EXPLAINER (Shows the professor the Docker containers) -->
+    <div class="bg-[#101524] border border-slate-800 rounded-xl p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <div>
+          <h3 class="font-bold text-sm text-white">How Docker Solves This: The Multi-Container Mesh</h3>
+          <p class="text-xs text-slate-400">All 6 services orchestrated via <code class="text-blue-400">docker-compose.yml</code></p>
         </div>
-        <div class="text-2xl font-bold tracking-tight text-emerald-400" id="race-condition-count">0</div>
-        <div class="text-[11px] text-zinc-500 mt-1 flex justify-between">
-          <span id="race-condition-status">0 Violations</span>
-          <span class="text-zinc-600">Atomic CAS</span>
-        </div>
+        <!-- Chaos Engineering Button -->
+        <button onclick="toggleChaos()" id="btn-chaos" class="px-3 py-1.5 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-300 hover:bg-amber-900/60 text-xs font-mono transition flex items-center space-x-1.5">
+          <span class="w-2 h-2 rounded-full bg-amber-400" id="chaos-indicator"></span>
+          <span id="chaos-text">💣 Test Failover: Kill Worker-2</span>
+        </button>
       </div>
 
-      <!-- Discrepancy Invariant Check -->
-      <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-3.5" id="invariant-card">
-        <div class="flex justify-between items-baseline mb-1">
-          <span class="text-[11px] text-zinc-500 tracking-wider">LEDGER INVARIANT</span>
-          <span class="text-[10px] text-zinc-600 font-mono">Σ(Δ)=0</span>
-        </div>
-        <div class="text-2xl font-bold tracking-tight text-emerald-400" id="discrepancy-metric">$0.00</div>
-        <div class="text-[11px] text-zinc-500 mt-1 flex justify-between">
-          <span id="discrepancy-status">Conservation Valid</span>
-          <span class="text-zinc-600">Double-Entry</span>
-        </div>
-      </div>
-
-      <!-- Throughput & Latency -->
-      <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-3.5">
-        <div class="flex justify-between items-baseline mb-1">
-          <span class="text-[11px] text-zinc-500 tracking-wider">LATENCY (p99)</span>
-          <span class="text-[10px] text-zinc-600 font-mono">TELEMETRY</span>
-        </div>
-        <div class="text-2xl font-bold tracking-tight text-zinc-100" id="metrics-latency">12ms</div>
-        <div class="text-[11px] text-zinc-500 mt-1 flex justify-between">
-          <span>Throughput:</span>
-          <span id="metrics-rps" class="text-zinc-300 font-medium">0 req/s</span>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- Main Workspace: Split Topology & Benchmarking Center -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      
-      <!-- Left Column: Concurrency Attack Suite (4 cols) -->
-      <div class="lg:col-span-4 space-y-4">
+      <!-- Container Cards Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-3 text-center text-xs">
         
-        <!-- Execution Panel -->
-        <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-4 space-y-4">
-          <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
-            <h2 class="text-xs font-semibold text-zinc-200 tracking-wide font-mono">STRESS TEST BENCHMARK</h2>
-            <span class="text-[10px] font-mono text-zinc-500">PARALLEL THREADS</span>
-          </div>
-
-          <!-- Slider 1: Concurrency -->
-          <div class="space-y-1.5 font-mono">
-            <div class="flex justify-between text-xs">
-              <span class="text-zinc-400">Concurrent Requests</span>
-              <span class="text-zinc-200 font-semibold" id="concurrent-display">200 threads</span>
-            </div>
-            <input type="range" id="concurrent-slider" min="10" max="500" step="10" value="200"
-              class="w-full h-1.5 bg-zinc-800 rounded appearance-none cursor-pointer accent-zinc-300"
-              oninput="document.getElementById('concurrent-display').innerText = this.value + ' threads'">
-            <div class="flex justify-between text-[10px] text-zinc-600">
-              <span>10</span>
-              <span>100</span>
-              <span>250</span>
-              <span>500</span>
-            </div>
-          </div>
-
-          <!-- Slider 2: Amount -->
-          <div class="space-y-1.5 font-mono">
-            <div class="flex justify-between text-xs">
-              <span class="text-zinc-400">Withdrawal per Hit</span>
-              <span class="text-zinc-200 font-semibold" id="amount-display">$100.00</span>
-            </div>
-            <input type="range" id="amount-slider" min="50" max="250" step="25" value="100"
-              class="w-full h-1.5 bg-zinc-800 rounded appearance-none cursor-pointer accent-zinc-300"
-              oninput="document.getElementById('amount-display').innerText = '$' + this.value + '.00'">
-          </div>
-
-          <!-- Trigger Buttons -->
-          <div class="space-y-2 pt-1 font-mono">
-            <button id="stress-btn" onclick="triggerStressTest()"
-              class="w-full py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded font-semibold text-xs transition duration-150 flex items-center justify-center space-x-2">
-              <span id="stress-btn-text">Execute Concurrent Burst</span>
-            </button>
-            <button onclick="sendSingleTransfer()"
-              class="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded text-xs transition">
-              Dispatch Single $100 Transaction
-            </button>
-          </div>
-
-          <!-- Architectural Insight Note -->
-          <div class="border border-zinc-800/80 bg-zinc-950/60 rounded p-3 text-[11px] text-zinc-400 leading-relaxed font-mono">
-            <div class="text-zinc-300 font-semibold mb-1">Verification Proof:</div>
-            Under a $1,000 balance, exactly 10 transfers should succeed. In <strong>Single-Instance Mode</strong>, unsynchronized thread interleaving allows 25+ transfers, yielding negative balances. In <strong>Docker Mesh Mode</strong>, distributed locks restrict approval to exactly 10.
-          </div>
+        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+          <div class="text-lg">🔀</div>
+          <div class="font-bold text-slate-200 mt-1">Nginx</div>
+          <div class="text-[10px] text-slate-500 font-mono">Load Balancer (:80)</div>
+          <div class="mt-2 text-[10px] text-emerald-400 font-mono">HEALTHY</div>
         </div>
 
-        <!-- Microservices Topology Health Strip -->
-        <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-4 space-y-3 font-mono">
-          <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2">
-            <h3 class="text-xs font-semibold text-zinc-300">CLUSTER MESH TOPOLOGY</h3>
-            <span class="text-[10px] text-zinc-500">BRIDGE NET</span>
-          </div>
+        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl" id="box-w1">
+          <div class="text-lg">⚙️</div>
+          <div class="font-bold text-slate-200 mt-1">API Worker 1</div>
+          <div class="text-[10px] text-slate-500 font-mono">Port :8001</div>
+          <div class="mt-2 text-[10px] text-emerald-400 font-mono" id="w1-status">ACTIVE</div>
+        </div>
 
-          <div class="space-y-2 text-xs">
-            <div class="flex items-center justify-between py-1 border-b border-zinc-900">
-              <span class="text-zinc-400">gateway (nginx:alpine)</span>
-              <span class="text-emerald-400 text-[11px]">80:80 • ONLINE</span>
-            </div>
-            <div class="flex items-center justify-between py-1 border-b border-zinc-900" id="mesh-w1">
-              <span class="text-zinc-400">api-worker-1</span>
-              <span class="text-zinc-300 text-[11px]" id="worker1-handled">0 reqs • HEALTHY</span>
-            </div>
-            <div class="flex items-center justify-between py-1 border-b border-zinc-900" id="mesh-w2">
-              <span class="text-zinc-400">api-worker-2</span>
-              <span class="text-zinc-300 text-[11px]" id="worker2-handled">0 reqs • HEALTHY</span>
-            </div>
-            <div class="flex items-center justify-between py-1 border-b border-zinc-900">
-              <span class="text-zinc-400">redis (redis:7-alpine)</span>
-              <span class="text-emerald-400 text-[11px]">6379 • REDLOCK ACTIVE</span>
-            </div>
-            <div class="flex items-center justify-between py-1 border-b border-zinc-900">
-              <span class="text-zinc-400">postgres (postgres:15)</span>
-              <span class="text-emerald-400 text-[11px]">5432 • ACID SERIALIZABLE</span>
-            </div>
-            <div class="flex items-center justify-between py-1">
-              <span class="text-zinc-400">kafka (apache/kafka:kraft)</span>
-              <span class="text-emerald-400 text-[11px]" id="kafka-total-msg">3 Partitions • 0 msgs</span>
-            </div>
-          </div>
+        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl" id="box-w2">
+          <div class="text-lg">⚙️</div>
+          <div class="font-bold text-slate-200 mt-1">API Worker 2</div>
+          <div class="text-[10px] text-slate-500 font-mono">Port :8002</div>
+          <div class="mt-2 text-[10px] text-emerald-400 font-mono" id="w2-status">ACTIVE</div>
+        </div>
+
+        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+          <div class="text-lg">⚡</div>
+          <div class="font-bold text-slate-200 mt-1">Redis 7</div>
+          <div class="text-[10px] text-slate-500 font-mono">Distributed Lock</div>
+          <div class="mt-2 text-[10px] text-blue-400 font-mono">REDLOCK</div>
+        </div>
+
+        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+          <div class="text-lg">🗄️</div>
+          <div class="font-bold text-slate-200 mt-1">Postgres 15</div>
+          <div class="text-[10px] text-slate-500 font-mono">ACID Ledger</div>
+          <div class="mt-2 text-[10px] text-blue-400 font-mono">ROW-LOCK</div>
+        </div>
+
+        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+          <div class="text-lg">📨</div>
+          <div class="font-bold text-slate-200 mt-1">Apache Kafka</div>
+          <div class="text-[10px] text-slate-500 font-mono">Event Sourcing</div>
+          <div class="mt-2 text-[10px] text-amber-400 font-mono" id="kafka-count-badge">3 PARTITIONS</div>
         </div>
 
       </div>
+    </div>
 
-      <!-- Right Column: Visual Telemetry, Real-time Chart & Kafka Event Log (8 cols) -->
-      <div class="lg:col-span-8 space-y-4">
-        
-        <!-- Balance Trajectory Chart -->
-        <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-4">
-          <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2.5 mb-3 font-mono">
-            <div class="flex items-center space-x-2">
-              <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
-              <h3 class="text-xs font-semibold text-zinc-200">REAL-TIME LIQUIDITY & BALANCE CONSERVATION</h3>
-            </div>
-            <span class="text-[11px] text-zinc-500">SAMPLING: 100ms</span>
-          </div>
-          <div class="h-56 relative w-full">
-            <canvas id="balanceChart"></canvas>
-          </div>
+    <!-- LIVE BALANCE CHART & TRANSACTION STREAM -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- Chart Card -->
+      <div class="bg-[#101524] border border-slate-800 rounded-xl p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-xs uppercase tracking-wider text-slate-300">Live Balance Trajectory</h4>
+          <span class="text-[11px] font-mono text-slate-500">Real-time Drain</span>
         </div>
-
-        <!-- Apache Kafka Partition Event Stream -->
-        <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-4 space-y-2">
-          <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2 font-mono">
-            <div class="flex items-center space-x-2">
-              <span class="h-2 w-2 rounded-full bg-amber-400"></span>
-              <h3 class="text-xs font-semibold text-zinc-200">APACHE KAFKA EVENT SINK: bank.transfers.v1</h3>
-            </div>
-            <div class="flex items-center space-x-3 text-[11px] text-zinc-400">
-              <span>LAG: <strong id="consumer-lag" class="text-emerald-400 font-mono">0 msgs</strong></span>
-              <span class="text-zinc-600">|</span>
-              <span>BROKER: KRaft-1</span>
-            </div>
-          </div>
-
-          <!-- Structured Log Feed -->
-          <div id="kafka-feed" class="bg-black/80 rounded border border-zinc-900 p-2.5 font-mono text-[11px] h-48 overflow-y-auto space-y-1">
-            <div class="text-zinc-600">// Kafka broker subscribed. Listening for partition commits...</div>
-          </div>
+        <div class="h-52 w-full relative">
+          <canvas id="balanceChart"></canvas>
         </div>
+      </div>
 
-        <!-- Transaction Ledger Inspection Table -->
-        <div class="bg-[#111113] border border-zinc-800/90 rounded-lg p-4 font-mono">
-          <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2.5 mb-2">
-            <h3 class="text-xs font-semibold text-zinc-200">DOUBLE-ENTRY GENERAL LEDGER</h3>
-            <span class="text-[11px] text-zinc-500" id="ledger-count">0 Recorded Mutations</span>
-          </div>
-
-          <div class="overflow-x-auto max-h-44 overflow-y-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="text-zinc-500 border-b border-zinc-800/60 sticky top-0 bg-[#111113]">
-                <tr>
-                  <th class="pb-2 font-normal">TX_HASH</th>
-                  <th class="pb-2 font-normal">DEBIT (FROM)</th>
-                  <th class="pb-2 font-normal">CREDIT (TO)</th>
-                  <th class="pb-2 font-normal">DELTA</th>
-                  <th class="pb-2 font-normal">POST_BALANCE</th>
-                  <th class="pb-2 font-normal">INGRESS_NODE</th>
-                  <th class="pb-2 font-normal text-right">ISOLATION</th>
-                </tr>
-              </thead>
-              <tbody id="ledger-table-body" class="divide-y divide-zinc-900 text-zinc-300">
-                <tr>
-                  <td colspan="7" class="py-3 text-center text-zinc-600">Ledger empty. Trigger transactions to initiate mutations.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <!-- Live Kafka & Ledger Event Stream -->
+      <div class="bg-[#101524] border border-slate-800 rounded-xl p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-xs uppercase tracking-wider text-slate-300">Kafka Event Stream & Ledger</h4>
+          <span class="text-[11px] font-mono text-slate-500" id="live-rps-text">0 req/s • 12ms latency</span>
         </div>
-
+        <div id="kafka-feed" class="bg-black/70 rounded-lg p-3 font-mono text-[11px] h-52 overflow-y-auto space-y-1.5 border border-slate-900">
+          <div class="text-slate-600">// Waiting to record events. Click an attack button above.</div>
+        </div>
       </div>
 
     </div>
 
   </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-zinc-800/80 mt-8 py-4 px-6 text-center text-zinc-600 font-mono text-xs">
-    BankShield Distributed Banking Engine • Concurrency Control & Event-Driven Microservices Architecture
+  <!-- Clean Footer -->
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+    BankShield • Operating Systems & Distributed Architecture Laboratory Project • Repository: <a href="https://github.com/yashwanthT200/bankshield" target="_blank" class="text-blue-400 hover:underline">github.com/yashwanthT200/bankshield</a>
   </footer>
 
-  <script src="app.js?v=20261022"></script>
+  <script src="app.js?v=20261022_v3"></script>
 </body>
 </html>
