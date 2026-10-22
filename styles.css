@@ -1,36 +1,44 @@
-/* Custom BankShield Styles */
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+/* BankShield Enterprise Systems Observatory Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.01em;
+  background-color: #09090b;
 }
 
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
 }
 
-/* Custom Scrollbar for Kafka Event Terminal */
-#kafka-feed::-webkit-scrollbar {
-  width: 6px;
+/* Precision scrollbar for Kafka log feed */
+#kafka-feed::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-#kafka-feed::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
+#kafka-feed::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #09090b;
 }
 
-#kafka-feed::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+#kafka-feed::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 2px;
 }
 
-#kafka-feed::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+#kafka-feed::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }
 
-/* Glassmorphism Accents */
-.glass-panel {
-  background: rgba(13, 19, 34, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+/* Subtle Table Row Highlight */
+tbody tr {
+  transition: background-color 0.1s ease;
+}
+
+tbody tr:hover {
+  background-color: rgba(39, 39, 42, 0.4);
 }

@@ -1,4 +1,4 @@
-// BankShield Frontend Application
+// BankShield Enterprise Systems Observatory Controller
 let currentMode = 'dockerized'; // 'dockerized' | 'naive'
 let balanceChart = null;
 let chartTimeLabels = [];
@@ -7,7 +7,7 @@ let recipientBalanceHistory = [0];
 let worker2Healthy = true;
 let isOfflineMode = false;
 
-// In-Browser Simulation Engine (Fallback for static hosting / GitHub Pages)
+// Client-side state fallback for static hosting / GitHub Pages
 const clientState = {
   accounts: {
     'ACC-94821': { name: 'Alice', balance: 1000.0 },
@@ -26,14 +26,14 @@ const clientState = {
   ledgerSize: 0,
 };
 
-// Initialize on DOM Load
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
   initChart();
   connectSSE();
   fetchState();
 });
 
-// Initialize Chart.js
+// Setup Chart.js with Minimalist Swiss Grid Aesthetics
 function initChart() {
   const ctx = document.getElementById('balanceChart').getContext('2d');
   const now = new Date().toLocaleTimeString();
@@ -45,24 +45,24 @@ function initChart() {
       labels: chartTimeLabels,
       datasets: [
         {
-          label: 'Sender Balance (Alice)',
+          label: 'Alice (Source)',
           data: senderBalanceHistory,
-          borderColor: '#06b6d4', // Cyan
-          backgroundColor: 'rgba(6, 182, 212, 0.1)',
+          borderColor: '#22d3ee', // Cyan-400
+          backgroundColor: 'rgba(34, 211, 238, 0.05)',
           fill: true,
-          tension: 0.3,
-          borderWidth: 2,
-          pointRadius: 2,
+          tension: 0.1,
+          borderWidth: 1.5,
+          pointRadius: 1,
         },
         {
-          label: 'Recipient Balance (Bob)',
+          label: 'Bob (Target)',
           data: recipientBalanceHistory,
-          borderColor: '#10b981', // Emerald
+          borderColor: '#34d399', // Emerald-400
           backgroundColor: 'transparent',
-          borderDash: [4, 4],
-          tension: 0.3,
-          borderWidth: 2,
-          pointRadius: 2,
+          borderDash: [3, 3],
+          tension: 0.1,
+          borderWidth: 1.5,
+          pointRadius: 1,
         },
       ],
     },
@@ -71,21 +71,21 @@ function initChart() {
       maintainAspectRatio: false,
       scales: {
         x: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: '#64748b', font: { family: 'monospace', size: 10 } },
+          grid: { color: 'rgba(255, 255, 255, 0.03)' },
+          ticks: { color: '#71717a', font: { family: 'JetBrains Mono', size: 10 } },
         },
         y: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          grid: { color: 'rgba(255, 255, 255, 0.03)' },
           ticks: {
-            color: '#64748b',
-            font: { family: 'monospace', size: 10 },
+            color: '#71717a',
+            font: { family: 'JetBrains Mono', size: 10 },
             callback: (val) => '$' + val,
           },
         },
       },
       plugins: {
         legend: {
-          labels: { color: '#cbd5e1', font: { family: 'monospace', size: 11 } },
+          labels: { color: '#a1a1aa', font: { family: 'JetBrains Mono', size: 10 } },
         },
       },
     },
@@ -99,7 +99,7 @@ function updateChart(senderBalance, recipientBalance) {
   senderBalanceHistory.push(senderBalance);
   recipientBalanceHistory.push(recipientBalance);
 
-  if (chartTimeLabels.length > 20) {
+  if (chartTimeLabels.length > 25) {
     chartTimeLabels.shift();
     senderBalanceHistory.shift();
     recipientBalanceHistory.shift();
@@ -108,35 +108,36 @@ function updateChart(senderBalance, recipientBalance) {
   balanceChart.update();
 }
 
-// Mode Selector Toggle
+// Architecture Mode Switcher
 function setMode(mode) {
   currentMode = mode;
   const naiveBtn = document.getElementById('mode-naive-btn');
   const dockerBtn = document.getElementById('mode-docker-btn');
-  const banner = document.getElementById('mode-banner');
-  const bannerTitle = document.getElementById('banner-title');
-  const bannerDesc = document.getElementById('banner-desc');
+  const ingress = document.getElementById('arch-ingress');
+  const lock = document.getElementById('arch-lock');
+  const db = document.getElementById('arch-db');
+  const kafka = document.getElementById('arch-kafka');
 
   if (mode === 'naive') {
-    naiveBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-lg shadow-amber-500/25';
-    dockerBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-2 text-slate-400 hover:text-white';
+    naiveBtn.className = 'px-3 py-1 rounded text-xs font-mono transition bg-zinc-800 text-amber-400 font-medium shadow-sm';
+    dockerBtn.className = 'px-3 py-1 rounded text-xs font-mono transition text-zinc-400 hover:text-zinc-200';
 
-    banner.className = 'p-4 rounded-xl border transition-all duration-300 flex items-center justify-between bg-amber-950/20 border-amber-800/40 text-amber-200';
-    bannerTitle.innerText = 'LOCAL / NAIVE MODE ACTIVE (VULNERABLE)';
-    bannerTitle.className = 'font-bold text-sm text-amber-400';
-    bannerDesc.innerText = 'Unsynchronized I/O without locks or load balancing. High concurrency will trigger double-spending and balance corruption.';
+    ingress.innerText = 'Direct Ingress (No Load Balancer)';
+    lock.innerText = 'None (Unsynchronized Shared State)';
+    db.innerText = 'Unbuffered In-Memory (No Row Lock)';
+    kafka.innerText = 'Bypassed (Synchronous Monolith)';
   } else {
-    dockerBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25';
-    naiveBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-2 text-slate-400 hover:text-white';
+    dockerBtn.className = 'px-3 py-1 rounded text-xs font-mono transition bg-zinc-800 text-zinc-100 font-medium shadow-sm';
+    naiveBtn.className = 'px-3 py-1 rounded text-xs font-mono transition text-zinc-400 hover:text-zinc-200';
 
-    banner.className = 'p-4 rounded-xl border transition-all duration-300 flex items-center justify-between bg-cyan-950/20 border-cyan-800/40 text-cyan-200';
-    bannerTitle.innerText = 'DOCKERIZED RESILIENT CLUSTER ACTIVE';
-    bannerTitle.className = 'font-bold text-sm text-cyan-300';
-    bannerDesc.innerText = 'Protected by Nginx Round-Robin, Redis Distributed Mutex (Redlock), PostgreSQL ACID row-locking, and Apache Kafka Event Sourcing.';
+    ingress.innerText = 'Nginx Layer-7 Round-Robin';
+    lock.innerText = 'Redis 7 Distributed Mutex (Redlock)';
+    db.innerText = 'PostgreSQL 15 (SELECT FOR UPDATE)';
+    kafka.innerText = 'Apache Kafka KRaft (3 partitions)';
   }
 }
 
-// Fetch Full System State
+// Fetch State
 async function fetchState() {
   try {
     const res = await fetch('/api/state');
@@ -145,84 +146,83 @@ async function fetchState() {
     isOfflineMode = false;
     renderState(data);
   } catch (err) {
-    // Client-side simulation fallback (e.g., when hosted on GitHub Pages)
     isOfflineMode = true;
     renderState(clientState);
   }
 }
 
-// Render State to UI
+// Render State
 function renderState(data) {
   const alice = data.accounts['ACC-94821'];
   const bob = data.accounts['ACC-33120'];
 
-  // 1. Balances
+  // Sender
   const senderEl = document.getElementById('sender-balance');
   senderEl.innerText = `$${alice.balance.toFixed(2)}`;
   if (alice.balance < 0) {
-    senderEl.className = 'text-3xl font-extrabold tracking-tight font-mono text-rose-500 animate-pulse';
+    senderEl.className = 'text-2xl font-bold tracking-tight text-rose-500 font-mono';
   } else {
-    senderEl.className = 'text-3xl font-extrabold tracking-tight font-mono text-white';
+    senderEl.className = 'text-2xl font-bold tracking-tight text-zinc-100 font-mono';
   }
 
   const diffAlice = (1000 - alice.balance).toFixed(2);
   document.getElementById('sender-diff').innerText = `$${diffAlice} withdrawn`;
 
+  // Recipient
   document.getElementById('recipient-balance').innerText = `$${bob.balance.toFixed(2)}`;
   document.getElementById('recipient-diff').innerText = `+$${bob.balance.toFixed(2)} received`;
 
-  // 2. Metrics (Naive vs Dockerized)
+  // Race Conditions
   const currentStats = data.stats[currentMode];
   const raceCountEl = document.getElementById('race-condition-count');
   raceCountEl.innerText = currentStats.raceConditionsDetected;
   if (currentStats.raceConditionsDetected > 0) {
-    raceCountEl.className = 'text-3xl font-extrabold tracking-tight font-mono text-rose-500 animate-pulse';
-    document.getElementById('race-condition-status').innerText = 'CRITICAL: Money Leaked!';
-    document.getElementById('race-condition-status').className = 'text-rose-400 font-bold';
+    raceCountEl.className = 'text-2xl font-bold tracking-tight text-rose-500 font-mono';
+    document.getElementById('race-condition-status').innerText = `${currentStats.raceConditionsDetected} Anomalies Detected`;
+    document.getElementById('race-condition-status').className = 'text-rose-400 font-mono';
   } else {
-    raceCountEl.className = 'text-3xl font-extrabold tracking-tight font-mono text-emerald-400';
-    document.getElementById('race-condition-status').innerText = 'Protection Active';
-    document.getElementById('race-condition-status').className = 'text-slate-400';
+    raceCountEl.className = 'text-2xl font-bold tracking-tight text-emerald-400 font-mono';
+    document.getElementById('race-condition-status').innerText = '0 Violations';
+    document.getElementById('race-condition-status').className = 'text-zinc-500 font-mono';
   }
 
-  // 3. Discrepancy Invariant Check: Sum(Alice + Bob) should always === $1,000.00
+  // Discrepancy Invariant: Sum(Alice + Bob) === $1,000.00
   const totalMoney = alice.balance + bob.balance;
   const discrepancy = totalMoney - 1000.0;
   const discrepancyEl = document.getElementById('discrepancy-metric');
   if (Math.abs(discrepancy) > 0.01) {
     discrepancyEl.innerText = `-$${Math.abs(discrepancy).toFixed(2)}`;
-    discrepancyEl.className = 'text-3xl font-extrabold tracking-tight font-mono text-rose-500 animate-pulse';
-    document.getElementById('discrepancy-status').innerText = 'VIOLATION DETECTED';
-    document.getElementById('discrepancy-status').className = 'text-rose-400 font-bold';
+    discrepancyEl.className = 'text-2xl font-bold tracking-tight text-rose-500 font-mono';
+    document.getElementById('discrepancy-status').innerText = 'Conservation Violated';
+    document.getElementById('discrepancy-status').className = 'text-rose-400 font-mono';
   } else {
     discrepancyEl.innerText = '$0.00';
-    discrepancyEl.className = 'text-3xl font-extrabold tracking-tight font-mono text-emerald-400';
-    document.getElementById('discrepancy-status').innerText = '100% Balanced';
-    document.getElementById('discrepancy-status').className = 'text-slate-400';
+    discrepancyEl.className = 'text-2xl font-bold tracking-tight text-emerald-400 font-mono';
+    document.getElementById('discrepancy-status').innerText = 'Conservation Valid';
+    document.getElementById('discrepancy-status').className = 'text-zinc-500 font-mono';
   }
 
-  // 4. Workers State
+  // Topology Nodes
   if (data.workers) {
     const w1 = data.workers.find((w) => w.id === 'Worker-1');
     const w2 = data.workers.find((w) => w.id === 'Worker-2');
-    if (w1) document.getElementById('worker1-handled').innerText = `Handled: ${w1.handled} reqs`;
+    if (w1) document.getElementById('worker1-handled').innerText = `${w1.handled} reqs • HEALTHY`;
     if (w2) {
-      document.getElementById('worker2-handled').innerText = `Handled: ${w2.handled} reqs`;
       worker2Healthy = w2.status === 'HEALTHY';
+      document.getElementById('worker2-handled').innerText = `${w2.handled} reqs • ${worker2Healthy ? 'HEALTHY' : 'OFFLINE'}`;
       updateWorker2Visuals(worker2Healthy);
     }
   }
 
-  // 5. Kafka Metrics
+  // Kafka stats
   if (data.kafkaMetrics) {
-    document.getElementById('kafka-total-msg').innerText = `Events: ${data.kafkaMetrics.totalPublished} msgs`;
+    document.getElementById('kafka-total-msg').innerText = `3 Partitions • ${data.kafkaMetrics.totalPublished} msgs`;
   }
   if (data.auditMetrics) {
-    document.getElementById('consumer-lag').innerText = `${data.auditMetrics.consumerLag} messages`;
+    document.getElementById('consumer-lag').innerText = `${data.auditMetrics.consumerLag} msgs`;
   }
 
-  // 6. Ledger Count
-  document.getElementById('ledger-count').innerText = `${data.ledgerSize || 0} Ledger Records`;
+  document.getElementById('ledger-count').innerText = `${data.ledgerSize || 0} Recorded Mutations`;
 
   updateChart(alice.balance, bob.balance);
 }
@@ -235,7 +235,7 @@ async function triggerStressTest() {
   const btn = document.getElementById('stress-btn');
   const btnText = document.getElementById('stress-btn-text');
   btn.disabled = true;
-  btnText.innerText = `EXECUTING ${count} CONCURRENT REQUESTS...`;
+  btnText.innerText = `Executing ${count} concurrent requests...`;
 
   try {
     const res = await fetch('/api/stress-test', {
@@ -253,67 +253,62 @@ async function triggerStressTest() {
       renderState(summary.snapshot);
     }
   } catch (err) {
-    // Client-side simulation fallback for GitHub Pages
     simulateClientBurst(count, amount, currentMode);
   } finally {
     btn.disabled = false;
-    btnText.innerText = 'LAUNCH CONCURRENT ATTACK';
+    btnText.innerText = 'Execute Concurrent Burst';
   }
 }
 
-// Client-side fallback simulation engine
+// Client simulation fallback
 function simulateClientBurst(count, amount, mode) {
   const alice = clientState.accounts['ACC-94821'];
   const bob = clientState.accounts['ACC-33120'];
 
   if (mode === 'naive') {
-    // Naive race condition: allows far more transfers than balance permits
     const approved = Math.min(count, Math.floor(alice.balance / amount) + Math.floor(count * 0.35));
-    const leaked = (approved * amount) - alice.balance;
     alice.balance -= approved * amount;
     bob.balance += approved * amount;
     clientState.stats.naive.raceConditionsDetected += Math.max(1, Math.floor(approved * 0.4));
     clientState.stats.naive.approved += approved;
 
     document.getElementById('metrics-rps').innerText = `${Math.floor(250 + Math.random() * 150)} req/s`;
-    document.getElementById('metrics-latency').innerText = '48ms';
+    document.getElementById('metrics-latency').innerText = '42ms';
   } else {
-    // Dockerized mode: strictly allows only what balance permits
     const maxPossible = Math.max(0, Math.floor(alice.balance / amount));
     const approved = Math.min(count, maxPossible);
     alice.balance -= approved * amount;
     bob.balance += approved * amount;
     clientState.stats.dockerized.approved += approved;
 
-    // Publish simulated Kafka events
     for (let i = 0; i < approved; i++) {
       clientState.kafkaMetrics.totalPublished++;
       appendKafkaEvent({
         partition: i % 3,
         offset: clientState.kafkaMetrics.totalPublished,
-        eventType: 'TRANSFER_SUCCESS',
+        eventType: 'TRANSFER_COMMITTED',
         payload: { amount, toAccount: 'ACC-33120' },
         timestamp: new Date().toISOString(),
       });
       appendLedgerRow({
-        txId: `TXN-PROD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        txId: `0x${Math.random().toString(16).substring(2, 10)}`,
         fromAccount: 'ACC-94821',
         toAccount: 'ACC-33120',
         amount,
         senderNewBalance: alice.balance,
-        workerId: i % 2 === 0 ? 'Worker-1' : 'Worker-2',
+        workerId: i % 2 === 0 ? 'api-worker-1' : 'api-worker-2',
       });
     }
 
     clientState.ledgerSize += approved;
-    document.getElementById('metrics-rps').innerText = `${Math.floor(750 + Math.random() * 300)} req/s`;
-    document.getElementById('metrics-latency').innerText = '14ms';
+    document.getElementById('metrics-rps').innerText = `${Math.floor(820 + Math.random() * 200)} req/s`;
+    document.getElementById('metrics-latency').innerText = '11ms';
   }
 
   renderState(clientState);
 }
 
-// Single Transfer Tap
+// Single Transfer
 async function sendSingleTransfer() {
   const amount = parseFloat(document.getElementById('amount-slider').value) || 100;
   try {
@@ -338,7 +333,7 @@ async function sendSingleTransfer() {
   }
 }
 
-// Chaos Monkey: Toggle Worker 2
+// Chaos Toggle
 async function toggleChaos() {
   try {
     const res = await fetch('/api/chaos/toggle-worker', { method: 'POST' });
@@ -354,13 +349,28 @@ async function toggleChaos() {
   }
 }
 
+function updateWorker2Visuals(healthy) {
+  const indicator = document.getElementById('chaos-indicator');
+  const text = document.getElementById('chaos-text');
+  const w2Mesh = document.getElementById('mesh-w2');
+
+  if (healthy) {
+    indicator.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+    text.innerText = 'Inject Worker-2 Failure';
+    if (w2Mesh) w2Mesh.querySelector('span:last-child').className = 'text-zinc-300 text-[11px]';
+  } else {
+    indicator.className = 'w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping';
+    text.innerText = 'Restore Worker-2 (Online)';
+    if (w2Mesh) w2Mesh.querySelector('span:last-child').className = 'text-rose-400 text-[11px] font-semibold';
+  }
+}
+
 // Reset System
 async function resetSystem() {
   try {
     await fetch('/api/reset', { method: 'POST' });
-  } catch (e) {
-    // Offline reset
-  }
+  } catch (e) {}
+
   clientState.accounts['ACC-94821'].balance = 1000.0;
   clientState.accounts['ACC-33120'].balance = 0.0;
   clientState.stats.naive.raceConditionsDetected = 0;
@@ -369,39 +379,13 @@ async function resetSystem() {
   clientState.kafkaMetrics.totalPublished = 0;
 
   const terminal = document.getElementById('kafka-feed');
-  terminal.innerHTML = '<div class="text-slate-500 text-[11px]">// System reset. Ready for attack.</div>';
+  terminal.innerHTML = '<div class="text-zinc-600">// Kafka broker subscribed. Listening for partition commits...</div>';
   const table = document.getElementById('ledger-table-body');
-  table.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-500">No transactions recorded yet.</td></tr>';
-  fetchState();
-}
-  const dot = document.getElementById('worker2-status-dot');
-  const badge = document.getElementById('worker2-status-badge');
-  const btnText = document.getElementById('chaos-btn-text');
-
-  if (healthy) {
-    dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
-    badge.className = 'mt-2 text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded font-mono';
-    badge.innerText = 'STATUS: HEALTHY';
-    btnText.innerText = 'Kill Worker-2';
-  } else {
-    dot.className = 'w-2 h-2 rounded-full bg-rose-500 animate-ping';
-    badge.className = 'mt-2 text-[10px] text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded font-mono';
-    badge.innerText = 'STATUS: CRASHED (OFFLINE)';
-    btnText.innerText = 'Revive Worker-2';
-  }
-}
-
-// Reset System
-async function resetSystem() {
-  await fetch('/api/reset', { method: 'POST' });
-  const terminal = document.getElementById('kafka-feed');
-  terminal.innerHTML = '<div class="text-slate-500 text-[11px]">// System reset. Ready for attack.</div>';
-  const table = document.getElementById('ledger-table-body');
-  table.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-500">No transactions recorded yet.</td></tr>';
+  table.innerHTML = '<tr><td colspan="7" class="py-3 text-center text-zinc-600">Ledger empty. Trigger transactions to initiate mutations.</td></tr>';
   fetchState();
 }
 
-// Connect Real-Time Server-Sent Events (SSE)
+// Connect SSE
 function connectSSE() {
   const eventSource = new EventSource('/events');
 
@@ -419,39 +403,38 @@ function connectSSE() {
         fetchState();
       }
     } catch (e) {
-      console.error('Error parsing SSE:', e);
+      console.error(e);
     }
   };
 
   eventSource.onerror = () => {
-    // Retry connection automatically
-    setTimeout(connectSSE, 3000);
+    setTimeout(connectSSE, 4000);
   };
 }
 
-// Append Kafka Event Pill into Terminal
+// Append Kafka Event
 function appendKafkaEvent(event) {
   const feed = document.getElementById('kafka-feed');
   const item = document.createElement('div');
-  item.className = 'p-1.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono flex items-center justify-between hover:border-slate-700 transition';
+  item.className = 'py-0.5 text-zinc-400 font-mono flex items-center justify-between border-b border-zinc-900/50';
 
-  const partitionColors = ['text-cyan-400', 'text-amber-400', 'text-purple-400'];
-  const pColor = partitionColors[event.partition % 3];
+  const partitionPill = `<span class="text-amber-400 font-semibold">[P${event.partition}:offset_${event.offset}]</span>`;
+  const timeStr = new Date(event.timestamp).toLocaleTimeString();
 
   item.innerHTML = `
     <div class="flex items-center space-x-2">
-      <span class="px-1.5 py-0.2 rounded bg-slate-800 ${pColor} font-bold text-[10px]">P${event.partition}:${event.offset}</span>
-      <span class="text-slate-300 font-semibold">${event.eventType}</span>
-      <span class="text-slate-400">$${event.payload.amount} -> ${event.payload.toAccount}</span>
+      ${partitionPill}
+      <span class="text-zinc-200">${event.eventType}</span>
+      <span class="text-zinc-500">$${event.payload.amount} -> ${event.payload.toAccount}</span>
     </div>
-    <span class="text-slate-500 text-[10px]">${new Date(event.timestamp).toLocaleTimeString()}</span>
+    <span class="text-zinc-600 text-[10px]">${timeStr}</span>
   `;
 
   feed.prepend(item);
   if (feed.children.length > 50) feed.removeChild(feed.lastChild);
 }
 
-// Append Ledger Row into Double-Entry Table
+// Append Ledger Row
 function appendLedgerRow(res) {
   const tbody = document.getElementById('ledger-table-body');
   if (tbody.children[0] && tbody.children[0].children.length === 1) {
@@ -459,17 +442,17 @@ function appendLedgerRow(res) {
   }
 
   const tr = document.createElement('tr');
-  tr.className = 'hover:bg-slate-800/40 transition font-mono text-[11px]';
+  tr.className = 'font-mono text-xs';
   tr.innerHTML = `
-    <td class="py-2 text-cyan-400">${res.txId}</td>
-    <td class="py-2 text-slate-300">${res.fromAccount}</td>
-    <td class="py-2 text-slate-300">${res.toAccount}</td>
-    <td class="py-2 text-emerald-400 font-bold">$${res.amount.toFixed(2)}</td>
-    <td class="py-2 text-slate-300">$${res.senderNewBalance.toFixed(2)}</td>
-    <td class="py-2 text-slate-400">${res.workerId || 'Worker-1'}</td>
-    <td class="py-2 text-right"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950/70 border border-emerald-800/50 text-emerald-300">ACID VERIFIED</span></td>
+    <td class="py-1.5 text-zinc-300 font-mono">${res.txId}</td>
+    <td class="py-1.5 text-zinc-400">${res.fromAccount}</td>
+    <td class="py-1.5 text-zinc-400">${res.toAccount}</td>
+    <td class="py-1.5 text-emerald-400 font-semibold">$${res.amount.toFixed(2)}</td>
+    <td class="py-1.5 text-zinc-300 font-semibold">$${res.senderNewBalance.toFixed(2)}</td>
+    <td class="py-1.5 text-zinc-500">${res.workerId || 'api-worker-1'}</td>
+    <td class="py-1.5 text-right"><span class="text-emerald-400 text-[10px]">ACID_STRICT</span></td>
   `;
 
   tbody.prepend(tr);
-  if (tbody.children.length > 15) tbody.removeChild(tbody.lastChild);
+  if (tbody.children.length > 20) tbody.removeChild(tbody.lastChild);
 }
