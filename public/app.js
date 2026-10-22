@@ -5,6 +5,26 @@ let chartTimeLabels = [];
 let senderBalanceHistory = [1000];
 let recipientBalanceHistory = [0];
 let worker2Healthy = true;
+let isOfflineMode = false;
+
+// In-Browser Simulation Engine (Fallback for static hosting / GitHub Pages)
+const clientState = {
+  accounts: {
+    'ACC-94821': { name: 'Alice', balance: 1000.0 },
+    'ACC-33120': { name: 'Bob', balance: 0.0 },
+  },
+  stats: {
+    naive: { raceConditionsDetected: 0, totalRequests: 0, approved: 0 },
+    dockerized: { raceConditionsDetected: 0, totalRequests: 0, approved: 0 },
+  },
+  workers: [
+    { id: 'Worker-1', handled: 0, status: 'HEALTHY' },
+    { id: 'Worker-2', handled: 0, status: 'HEALTHY' },
+  ],
+  kafkaMetrics: { totalPublished: 0 },
+  auditMetrics: { consumerLag: 0 },
+  ledgerSize: 0,
+};
 
 // Initialize on DOM Load
 document.addEventListener('DOMContentLoaded', () => {
@@ -120,10 +140,14 @@ function setMode(mode) {
 async function fetchState() {
   try {
     const res = await fetch('/api/state');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
+    isOfflineMode = false;
     renderState(data);
   } catch (err) {
-    console.error('Failed to fetch state:', err);
+    // Client-side simulation fallback (e.g., when hosted on GitHub Pages)
+    isOfflineMode = true;
+    renderState(clientState);
   }
 }
 
@@ -220,6 +244,7 @@ async function triggerStressTest() {
       body: JSON.stringify({ count, amount, mode: currentMode }),
     });
 
+    if (!res.ok) throw new Error('API offline');
     const summary = await res.json();
     document.getElementById('metrics-rps').innerText = `${summary.throughputRps} req/s`;
     document.getElementById('metrics-latency').innerText = `${Math.round(summary.durationMs / (count / 10))}ms`;
@@ -228,11 +253,64 @@ async function triggerStressTest() {
       renderState(summary.snapshot);
     }
   } catch (err) {
-    console.error('Stress test failed:', err);
+    // Client-side simulation fallback for GitHub Pages
+    simulateClientBurst(count, amount, currentMode);
   } finally {
     btn.disabled = false;
     btnText.innerText = 'LAUNCH CONCURRENT ATTACK';
   }
+}
+
+// Client-side fallback simulation engine
+function simulateClientBurst(count, amount, mode) {
+  const alice = clientState.accounts['ACC-94821'];
+  const bob = clientState.accounts['ACC-33120'];
+
+  if (mode === 'naive') {
+    // Naive race condition: allows far more transfers than balance permits
+    const approved = Math.min(count, Math.floor(alice.balance / amount) + Math.floor(count * 0.35));
+    const leaked = (approved * amount) - alice.balance;
+    alice.balance -= approved * amount;
+    bob.balance += approved * amount;
+    clientState.stats.naive.raceConditionsDetected += Math.max(1, Math.floor(approved * 0.4));
+    clientState.stats.naive.approved += approved;
+
+    document.getElementById('metrics-rps').innerText = `${Math.floor(250 + Math.random() * 150)} req/s`;
+    document.getElementById('metrics-latency').innerText = '48ms';
+  } else {
+    // Dockerized mode: strictly allows only what balance permits
+    const maxPossible = Math.max(0, Math.floor(alice.balance / amount));
+    const approved = Math.min(count, maxPossible);
+    alice.balance -= approved * amount;
+    bob.balance += approved * amount;
+    clientState.stats.dockerized.approved += approved;
+
+    // Publish simulated Kafka events
+    for (let i = 0; i < approved; i++) {
+      clientState.kafkaMetrics.totalPublished++;
+      appendKafkaEvent({
+        partition: i % 3,
+        offset: clientState.kafkaMetrics.totalPublished,
+        eventType: 'TRANSFER_SUCCESS',
+        payload: { amount, toAccount: 'ACC-33120' },
+        timestamp: new Date().toISOString(),
+      });
+      appendLedgerRow({
+        txId: `TXN-PROD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        fromAccount: 'ACC-94821',
+        toAccount: 'ACC-33120',
+        amount,
+        senderNewBalance: alice.balance,
+        workerId: i % 2 === 0 ? 'Worker-1' : 'Worker-2',
+      });
+    }
+
+    clientState.ledgerSize += approved;
+    document.getElementById('metrics-rps').innerText = `${Math.floor(750 + Math.random() * 300)} req/s`;
+    document.getElementById('metrics-latency').innerText = '14ms';
+  }
+
+  renderState(clientState);
 }
 
 // Single Transfer Tap
@@ -252,10 +330,11 @@ async function sendSingleTransfer() {
         mode: currentMode,
       }),
     });
-    const data = await res.json();
+    if (!res.ok) throw new Error('Offline');
+    await res.json();
     fetchState();
   } catch (err) {
-    console.error('Transfer failed:', err);
+    simulateClientBurst(1, amount, currentMode);
   }
 }
 
@@ -263,17 +342,38 @@ async function sendSingleTransfer() {
 async function toggleChaos() {
   try {
     const res = await fetch('/api/chaos/toggle-worker', { method: 'POST' });
+    if (!res.ok) throw new Error('Offline');
     const data = await res.json();
     if (data.worker) {
       worker2Healthy = data.worker.status === 'HEALTHY';
       updateWorker2Visuals(worker2Healthy);
     }
   } catch (err) {
-    console.error('Chaos toggle failed:', err);
+    worker2Healthy = !worker2Healthy;
+    updateWorker2Visuals(worker2Healthy);
   }
 }
 
-function updateWorker2Visuals(healthy) {
+// Reset System
+async function resetSystem() {
+  try {
+    await fetch('/api/reset', { method: 'POST' });
+  } catch (e) {
+    // Offline reset
+  }
+  clientState.accounts['ACC-94821'].balance = 1000.0;
+  clientState.accounts['ACC-33120'].balance = 0.0;
+  clientState.stats.naive.raceConditionsDetected = 0;
+  clientState.stats.dockerized.raceConditionsDetected = 0;
+  clientState.ledgerSize = 0;
+  clientState.kafkaMetrics.totalPublished = 0;
+
+  const terminal = document.getElementById('kafka-feed');
+  terminal.innerHTML = '<div class="text-slate-500 text-[11px]">// System reset. Ready for attack.</div>';
+  const table = document.getElementById('ledger-table-body');
+  table.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-500">No transactions recorded yet.</td></tr>';
+  fetchState();
+}
   const dot = document.getElementById('worker2-status-dot');
   const badge = document.getElementById('worker2-status-badge');
   const btnText = document.getElementById('chaos-btn-text');
