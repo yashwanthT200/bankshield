@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>BankShield • High-Concurrency Banking Demonstration</title>
   
   <!-- Fonts: Inter & JetBrains Mono -->
@@ -114,9 +117,9 @@
           </div>
         </div>
 
-        <!-- Big Launch Button -->
-        <button onclick="runNaiveAttack()" id="btn-run-naive" class="w-full py-3 px-4 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-500 text-white transition flex items-center justify-center space-x-2 shadow-md">
-          <span>⚡ Attack System A (200 Concurrent Withdrawals)</span>
+        <!-- Big Launch Button (Vibrant Red) -->
+        <button onclick="runNaiveAttack()" id="btn-run-naive" style="background-color: #e11d48 !important; color: #ffffff !important;" class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition hover:opacity-95 flex items-center justify-center space-x-2 shadow-lg cursor-pointer">
+          <span>⚡ ATTACK SYSTEM A (Without Locks)</span>
         </button>
       </div>
 
@@ -156,9 +159,9 @@
           </div>
         </div>
 
-        <!-- Big Launch Button -->
-        <button onclick="runDockerAttack()" id="btn-run-docker" class="w-full py-3 px-4 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center justify-center space-x-2 shadow-md">
-          <span>🛡️ Attack System B (200 Concurrent Withdrawals)</span>
+        <!-- Big Launch Button (Vibrant Emerald Green) -->
+        <button onclick="runDockerAttack()" id="btn-run-docker" style="background-color: #059669 !important; color: #ffffff !important;" class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition hover:opacity-95 flex items-center justify-center space-x-2 shadow-lg cursor-pointer">
+          <span>🛡️ ATTACK SYSTEM B (With Docker & Locks)</span>
         </button>
       </div>
 
