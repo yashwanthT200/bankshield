@@ -1,0 +1,15 @@
+{
+  "name": "bankshield",
+  "version": "1.0.0",
+  "description": "High-Concurrency Banking System with Distributed Locks, ACID Ledger, Apache Kafka Event Sourcing, and Docker Microservices",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down -v"
+  },
+  "keywords": ["banking", "high-concurrency", "docker", "microservices", "kafka", "redis", "acid"],
+  "author": "Yashwanth",
+  "license": "MIT",
+  "dependencies": {}
+}

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BankShield | High-Concurrency Banking & Microservices Engine</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-[#090D16] text-slate-100 min-h-screen font-sans selection:bg-cyan-500 selection:text-black">
+
+  <!-- Top Navigation & Mode Switcher -->
+  <header class="border-b border-slate-800 bg-[#0D1322]/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i class="fa-solid fa-shield-halved text-xl text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold text-xl tracking-tight text-white">BankShield</span>
+            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/50">ENTERPRISE OS</span>
+          </div>
+          <p class="text-xs text-slate-400">High-Concurrency Distributed Banking & Race-Condition Defense</p>
+        </div>
+      </div>
+
+      <!-- Mode Selector (The Core Comparison Feature) -->
+      <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+        <button id="mode-naive-btn" onclick="setMode('naive')" class="px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-2 text-slate-400 hover:text-white">
+          <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+          <span>LOCAL / NAIVE</span>
+        </button>
+        <button id="mode-docker-btn" onclick="setMode('dockerized')" class="px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25">
+          <i class="fa-brands fa-docker text-cyan-200 text-sm"></i>
+          <span>DOCKERIZED CLUSTER</span>
+        </button>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="flex items-center space-x-3">
+        <button onclick="resetSystem()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition border border-slate-700 flex items-center space-x-2">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span>Reset Ledger</span>
+        </button>
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800/40 text-emerald-400 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>CLUSTER LIVE</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- Mode Banner Description -->
+    <div id="mode-banner" class="p-4 rounded-xl border transition-all duration-300 flex items-center justify-between bg-cyan-950/20 border-cyan-800/40 text-cyan-200">
+      <div class="flex items-center space-x-3">
+        <i class="fa-brands fa-docker text-2xl text-cyan-400"></i>
+        <div>
+          <span class="font-bold text-sm text-cyan-300" id="banner-title">DOCKERIZED RESILIENT CLUSTER ACTIVE</span>
+          <p class="text-xs text-slate-400" id="banner-desc">Protected by Nginx Round-Robin, Redis Distributed Mutex (Redlock), PostgreSQL ACID row-locking, and Apache Kafka Event Sourcing.</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-xs font-mono uppercase text-slate-400">Guaranteed Invariant</span>
+        <div class="text-xs font-bold text-emerald-400">0% Race Conditions • 0% Money Leaks</div>
+      </div>
+    </div>
+
+    <!-- 1. Top Metrics Bar -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Sender Balance -->
+      <div class="bg-[#0D1322] border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sender (Alice)</span>
+          <i class="fa-solid fa-wallet text-cyan-400"></i>
+        </div>
+        <div class="text-3xl font-extrabold tracking-tight font-mono" id="sender-balance">$1,000.00</div>
+        <div class="mt-2 text-xs text-slate-400 flex items-center justify-between">
+          <span>Initial: $1,000.00</span>
+          <span id="sender-diff" class="text-slate-400">$0.00 withdrawn</span>
+        </div>
+      </div>
+
+      <!-- Recipient Balance -->
+      <div class="bg-[#0D1322] border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Recipient (Bob)</span>
+          <i class="fa-solid fa-building-columns text-emerald-400"></i>
+        </div>
+        <div class="text-3xl font-extrabold tracking-tight font-mono text-emerald-400" id="recipient-balance">$0.00</div>
+        <div class="mt-2 text-xs text-slate-400 flex items-center justify-between">
+          <span>Initial: $0.00</span>
+          <span id="recipient-diff" class="text-emerald-400/80">+$0.00 received</span>
+        </div>
+      </div>
+
+      <!-- Race Conditions Counter -->
+      <div class="bg-[#0D1322] border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Race Conditions</span>
+          <i class="fa-solid fa-bolt-lightning text-amber-400"></i>
+        </div>
+        <div class="text-3xl font-extrabold tracking-tight font-mono text-emerald-400" id="race-condition-count">0</div>
+        <div class="mt-2 text-xs text-slate-400 flex items-center justify-between">
+          <span id="race-condition-status">Protection Active</span>
+          <span class="text-xs font-mono text-slate-500">Atomic CAS</span>
+        </div>
+      </div>
+
+      <!-- Data Corruption / Audit Integrity -->
+      <div class="bg-[#0D1322] border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Ledger Discrepancy</span>
+          <i class="fa-solid fa-scale-balanced text-cyan-400"></i>
+        </div>
+        <div class="text-3xl font-extrabold tracking-tight font-mono text-emerald-400" id="discrepancy-metric">$0.00</div>
+        <div class="mt-2 text-xs text-slate-400 flex items-center justify-between">
+          <span id="discrepancy-status">100% Balanced</span>
+          <span class="text-xs font-mono text-emerald-400">Double-Entry</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Controls & Stress Testing Engine -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Interactive Burst Stress Controller -->
+      <div class="bg-[#0D1322] border border-slate-800 p-6 rounded-2xl lg:col-span-1 space-y-5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+            <i class="fa-solid fa-meteor text-cyan-400"></i>
+            <span>Traffic Attack Generator</span>
+          </h2>
+          <span class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-cyan-300">CONCURRENT BURST</span>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-xs font-semibold mb-2 text-slate-300">
+            <span>Concurrent Requests</span>
+            <span class="font-mono text-cyan-400 text-sm" id="concurrent-display">200 Requests</span>
+          </div>
+          <input type="range" id="concurrent-slider" min="10" max="500" step="10" value="200"
+            class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+            oninput="document.getElementById('concurrent-display').innerText = this.value + ' Requests'">
+          <div class="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
+            <span>10 req</span>
+            <span>250 req</span>
+            <span>500 req</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-xs font-semibold mb-2 text-slate-300">
+            <span>Transfer Amount per Hit</span>
+            <span class="font-mono text-emerald-400 text-sm" id="amount-display">$100.00</span>
+          </div>
+          <input type="range" id="amount-slider" min="50" max="250" step="25" value="100"
+            class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            oninput="document.getElementById('amount-display').innerText = '$' + this.value + '.00'">
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-3 pt-2">
+          <button id="stress-btn" onclick="triggerStressTest()"
+            class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-cyan-500/25 transition duration-200 flex items-center justify-center space-x-2 disabled:opacity-50">
+            <i class="fa-solid fa-bolt"></i>
+            <span id="stress-btn-text">LAUNCH CONCURRENT ATTACK</span>
+          </button>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="sendSingleTransfer()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition border border-slate-700 flex items-center justify-center space-x-2">
+              <i class="fa-solid fa-paper-plane text-cyan-400"></i>
+              <span>Single $100 Tap</span>
+            </button>
+            <button id="chaos-btn" onclick="toggleChaos()" class="py-2.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 rounded-lg text-xs font-semibold transition flex items-center justify-center space-x-2">
+              <i class="fa-solid fa-bomb text-rose-400"></i>
+              <span id="chaos-btn-text">Kill Worker-2</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Fast Explainer Note -->
+        <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+          <div class="font-semibold text-slate-200 flex items-center space-x-1.5">
+            <i class="fa-solid fa-lightbulb text-amber-400"></i>
+            <span>Professor Demo Tip:</span>
+          </div>
+          <p>Under $1,000 balance, exactly 10 transfers should succeed. In <strong>Naive Mode</strong>, 25+ succeed and balance drops into negative! In <strong>Docker Mode</strong>, exactly 10 succeed.</p>
+        </div>
+      </div>
+
+      <!-- Visual Microservices Mesh Diagram -->
+      <div class="bg-[#0D1322] border border-slate-800 p-6 rounded-2xl lg:col-span-2 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+            <i class="fa-solid fa-network-wired text-cyan-400"></i>
+            <span>Docker Microservices Mesh & State</span>
+          </h2>
+          <span class="text-xs font-mono text-slate-400">DOCKER BRIDGE: 172.20.0.0/16</span>
+        </div>
+
+        <!-- Node Mesh Grid -->
+        <div class="grid grid-cols-3 gap-3">
+          <!-- Nginx Gateway -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-slate-300">Nginx Gateway</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            </div>
+            <div class="text-[11px] font-mono text-slate-400">Port: 80 / 3000</div>
+            <div class="mt-2 text-[10px] text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded font-mono">Round-Robin Ingress</div>
+          </div>
+
+          <!-- Worker 1 -->
+          <div id="node-worker-1" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-slate-300">API Worker-1</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            </div>
+            <div class="text-[11px] font-mono text-slate-400" id="worker1-handled">Handled: 0 reqs</div>
+            <div class="mt-2 text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded font-mono">STATUS: HEALTHY</div>
+          </div>
+
+          <!-- Worker 2 (Can be killed via Chaos) -->
+          <div id="node-worker-2" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-slate-300">API Worker-2</span>
+              <span id="worker2-status-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            </div>
+            <div class="text-[11px] font-mono text-slate-400" id="worker2-handled">Handled: 0 reqs</div>
+            <div id="worker2-status-badge" class="mt-2 text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded font-mono">STATUS: HEALTHY</div>
+          </div>
+
+          <!-- Redis Lock Node -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-slate-300">Redis 7 Lock</span>
+              <span class="w-2 h-2 rounded-full bg-red-400"></span>
+            </div>
+            <div class="text-[11px] font-mono text-slate-400">Distributed Mutex</div>
+            <div class="mt-2 text-[10px] text-red-300 bg-red-950/60 px-2 py-0.5 rounded font-mono">REDLOCK PROTOCOL</div>
+          </div>
+
+          <!-- PostgreSQL Master -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-slate-300">PostgreSQL 15</span>
+              <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+            </div>
+            <div class="text-[11px] font-mono text-slate-400">ACID Ledger DB</div>
+            <div class="mt-2 text-[10px] text-blue-300 bg-blue-950/60 px-2 py-0.5 rounded font-mono">ROW-LOCK (FOR UPDATE)</div>
+          </div>
+
+          <!-- Apache Kafka KRaft -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-slate-300">Apache Kafka</span>
+              <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            </div>
+            <div class="text-[11px] font-mono text-slate-400" id="kafka-total-msg">Events: 0 msgs</div>
+            <div class="mt-2 text-[10px] text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded font-mono">KRAFT EVENT BROKER</div>
+          </div>
+        </div>
+
+        <!-- Real-time Throughput Gauge -->
+        <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-4">
+            <div>
+              <span class="text-slate-400">Throughput:</span>
+              <span class="font-mono font-bold text-cyan-400 ml-1" id="metrics-rps">0 req/s</span>
+            </div>
+            <div>
+              <span class="text-slate-400">Avg Latency:</span>
+              <span class="font-mono font-bold text-emerald-400 ml-1" id="metrics-latency">12ms</span>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-400">
+            Consumer Group Lag: <span class="font-mono text-emerald-400 font-bold" id="consumer-lag">0 messages</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Real-Time Chart & Apache Kafka Event Stream -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Balance & Concurrency Chart -->
+      <div class="bg-[#0D1322] border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+            <i class="fa-solid fa-chart-line text-cyan-400"></i>
+            <span>Real-time Balance vs Money Drain</span>
+          </h2>
+          <span class="text-xs font-mono text-slate-400">CHART.JS LIVE</span>
+        </div>
+        <div class="h-64 relative w-full">
+          <canvas id="balanceChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Apache Kafka Event Stream Visualizer -->
+      <div class="bg-[#0D1322] border border-slate-800 p-6 rounded-2xl flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-satellite-dish text-amber-400"></i>
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300">Kafka Topic: bank.transfers.v1</h2>
+          </div>
+          <div class="flex space-x-1">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950/70 border border-amber-800/50 text-amber-300">3 PARTITIONS</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-950/70 border border-blue-800/50 text-blue-300">EVENT SOURCING</span>
+          </div>
+        </div>
+
+        <!-- Terminal Event Stream -->
+        <div id="kafka-feed" class="flex-1 bg-black/60 rounded-xl p-3 font-mono text-xs overflow-y-auto max-h-64 space-y-1.5 border border-slate-900">
+          <div class="text-slate-500 text-[11px]">// Waiting for financial transfer events...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Real-time Transaction Ledger Table -->
+    <section class="bg-[#0D1322] border border-slate-800 p-6 rounded-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+          <i class="fa-solid fa-book-journal-whills text-cyan-400"></i>
+          <span>Live Double-Entry Ledger (ACID Validated)</span>
+        </h2>
+        <span class="text-xs font-mono text-slate-400" id="ledger-count">0 Ledger Records</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs font-mono">
+          <thead class="text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="pb-2.5">Transaction ID</th>
+              <th class="pb-2.5">Debit (Sender)</th>
+              <th class="pb-2.5">Credit (Receiver)</th>
+              <th class="pb-2.5">Amount</th>
+              <th class="pb-2.5">Post-Balance</th>
+              <th class="pb-2.5">Worker</th>
+              <th class="pb-2.5 text-right">Integrity</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-table-body" class="divide-y divide-slate-800/60 text-slate-300">
+            <tr>
+              <td colspan="7" class="py-4 text-center text-slate-500">No transactions recorded yet. Launch a burst or tap transfer to begin.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 font-mono">
+    BankShield Engine • Operating Systems & Distributed Systems Laboratory Project • Multi-Container Docker Cluster
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
