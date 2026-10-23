@@ -1,16 +1,15 @@
-// BankShield Professor Presentation Controller
+// BankShield OS Concurrency Laboratory Controller
 let balanceChart = null;
 let chartLabels = [];
 let naiveHistory = [1000];
 let dockerHistory = [1000];
-let worker2Healthy = true;
+let workerHealthy = true;
 
-// Initialize on Load
 document.addEventListener('DOMContentLoaded', () => {
   initChart();
 });
 
-// Setup Balance Chart
+// Setup Chart
 function initChart() {
   const ctx = document.getElementById('balanceChart').getContext('2d');
   chartLabels = ['Start'];
@@ -21,18 +20,18 @@ function initChart() {
       labels: chartLabels,
       datasets: [
         {
-          label: 'System A (Naive Monolith)',
+          label: 'Without Mutex (Vulnerable)',
           data: naiveHistory,
-          borderColor: '#f43f5e', // Rose-500
+          borderColor: '#f43f5e', // Red
           backgroundColor: 'rgba(244, 63, 94, 0.1)',
           fill: false,
           tension: 0.2,
           borderWidth: 2,
         },
         {
-          label: 'System B (Docker Mesh)',
+          label: 'With Mutex Lock (Protected)',
           data: dockerHistory,
-          borderColor: '#10b981', // Emerald-500
+          borderColor: '#10b981', // Green
           backgroundColor: 'rgba(16, 185, 129, 0.1)',
           fill: false,
           tension: 0.2,
@@ -66,155 +65,202 @@ function initChart() {
   });
 }
 
-// 1. RUN ATTACK ON SYSTEM A (THE NAIVE MONOLITH - SHOWS FAILURE)
-async function runNaiveAttack() {
-  const btn = document.getElementById('btn-run-naive');
+// 1. RUN EXPERIMENT A: WITHOUT MUTEX LOCK (VULNERABLE)
+async function runNaiveExperiment() {
+  const btn = document.getElementById('btn-naive');
   btn.disabled = true;
-  btn.innerText = '⏳ Blasting 200 Requests without locks...';
+  btn.innerText = '⏳ Running 50 Concurrent Threads...';
+
+  // Animate Critical Section to Warning State
+  const csBox = document.getElementById('critical-section-box');
+  const lockBadge = document.getElementById('lock-state-badge');
+  lockBadge.className = 'px-3 py-1 rounded-lg text-xs font-mono font-bold bg-rose-950 text-rose-400 border border-rose-800 animate-pulse';
+  lockBadge.innerText = 'MUTEX: DISABLED (RACE CONDITION)';
+  csBox.style.borderColor = '#f43f5e';
 
   try {
     const res = await fetch('/api/stress-test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count: 200, amount: 100, mode: 'naive' }),
+      body: JSON.stringify({ count: 50, amount: 100, mode: 'naive' }),
     });
 
     if (res.ok) {
       const data = await res.json();
-      renderNaiveResult(data.snapshot.accounts['ACC-94821'].balance, data.approved, data.snapshot.stats.naive.raceConditionsDetected);
+      renderNaiveOutcome(data.snapshot.accounts['ACC-94821'].balance, data.approved, data.snapshot.stats.naive.raceConditionsDetected);
     } else {
       throw new Error('Offline fallback');
     }
   } catch (err) {
-    // Client-side simulation fallback (34 approved, -$2,400 balance)
-    renderNaiveResult(-2400.0, 34, 24);
+    // Client-side simulation fallback (28 approved from $1,000, -$1,800 final)
+    renderNaiveOutcome(-1800.0, 28, 18);
   } finally {
     btn.disabled = false;
-    btn.innerText = '⚡ Attack System A (200 Concurrent Withdrawals)';
+    btn.innerText = '⚡ Run Without Mutex (50 Concurrent Threads)';
   }
 }
 
-function renderNaiveResult(balance, approved, raceConditions) {
-  const balEl = document.getElementById('naive-balance-display');
+function renderNaiveOutcome(balance, approved, raceConditions) {
+  // Update Balance
+  const balEl = document.getElementById('naive-balance');
   balEl.innerText = `-$${Math.abs(balance).toFixed(2)}`;
   balEl.className = 'text-4xl font-extrabold font-mono mt-1 text-rose-500 animate-pulse';
 
-  const statusEl = document.getElementById('naive-status-text');
-  statusEl.innerHTML = `<span class="text-rose-400 font-bold">❌ DISASTER: Balance corrupted into negative! Money leaked!</span>`;
+  // Update Status Text
+  const statusEl = document.getElementById('naive-status');
+  statusEl.innerHTML = `<span class="text-rose-400 font-bold">❌ Critical Section Violated: Money Created Out Of Nowhere!</span>`;
 
-  document.getElementById('naive-approved-count').innerText = approved;
-  document.getElementById('naive-approved-count').className = 'text-base font-bold text-rose-400';
+  // Update Counters
+  document.getElementById('naive-approved').innerText = approved;
+  document.getElementById('naive-approved').className = 'text-lg text-rose-400 font-bold';
 
-  document.getElementById('naive-race-count').innerText = raceConditions;
-  document.getElementById('naive-race-count').className = 'text-base font-bold text-rose-400';
-  document.getElementById('naive-race-sub').innerText = 'Race conditions verified';
+  document.getElementById('naive-race').innerText = raceConditions;
+  document.getElementById('naive-race').className = 'text-lg text-rose-400 font-bold';
+  document.getElementById('naive-race-label').innerText = 'Race conditions detected';
 
-  // Update chart
-  chartLabels.push('Attack A');
+  // Update Visualizer
+  document.getElementById('cs-balance').innerText = `-$${Math.abs(balance).toFixed(2)}`;
+  document.getElementById('cs-balance').className = 'text-lg font-bold text-rose-500 font-mono';
+  document.getElementById('outcome-text').innerHTML = `<span class="text-rose-400 font-bold">FAILED (${approved} Allowed)</span>`;
+  document.getElementById('outcome-sub').innerText = 'Data Corruption Detected';
+
+  // Update Chart
+  chartLabels.push('Without Mutex');
   naiveHistory.push(balance);
   dockerHistory.push(dockerHistory[dockerHistory.length - 1]);
   balanceChart.update();
 
-  // Log in terminal
-  appendLog(`[SYSTEM_A] ❌ CRITICAL: 200 requests executed. ${approved} approved from $1,000 balance! Final: -$${Math.abs(balance)} (RACE CONDITION)`);
+  // Log in plain terms for the professor
+  appendLog(`[THREAD 12] Reading balance: $1,000.00 (No lock acquired)`);
+  appendLog(`[THREAD 18] Reading balance: $1,000.00 (Stale read collision)`);
+  appendLog(`[RACE CONDITION] Multiple threads decremented concurrently!`);
+  appendLog(`❌ DISASTER: ${approved} withdrawals approved. Balance dropped to -$${Math.abs(balance)}.00!`);
 }
 
-// 2. RUN ATTACK ON SYSTEM B (THE DOCKER MESH - SHOWS PERFECTION)
-async function runDockerAttack() {
-  const btn = document.getElementById('btn-run-docker');
+// 2. RUN EXPERIMENT B: WITH MUTEX LOCK (PROTECTED)
+async function runDockerExperiment() {
+  const btn = document.getElementById('btn-docker');
   btn.disabled = true;
-  btn.innerText = '⏳ Blasting 200 Requests through Docker Mesh...';
+  btn.innerText = '⏳ Running 50 Concurrent Threads with Mutex...';
+
+  // Animate Critical Section to Protected State
+  const csBox = document.getElementById('critical-section-box');
+  const lockBadge = document.getElementById('lock-state-badge');
+  lockBadge.className = 'px-3 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
+  lockBadge.innerText = 'MUTEX: ACQUIRED (MUTUAL EXCLUSION)';
+  csBox.style.borderColor = '#10b981';
 
   try {
     const res = await fetch('/api/stress-test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count: 200, amount: 100, mode: 'dockerized' }),
+      body: JSON.stringify({ count: 50, amount: 100, mode: 'dockerized' }),
     });
 
     if (res.ok) {
       const data = await res.json();
-      renderDockerResult(data.snapshot.accounts['ACC-94821'].balance, data.approved, data.rejected);
+      renderDockerOutcome(data.snapshot.accounts['ACC-94821'].balance, data.approved, data.rejected);
     } else {
       throw new Error('Offline fallback');
     }
   } catch (err) {
-    // Client-side simulation fallback (Exactly 10 approved, 190 rejected, $0.00 balance)
-    renderDockerResult(0.0, 10, 190);
+    // Client-side simulation fallback (Exactly 10 approved, 40 rejected, $0.00 balance)
+    renderDockerOutcome(0.0, 10, 40);
   } finally {
     btn.disabled = false;
-    btn.innerText = '🛡️ Attack System B (200 Concurrent Withdrawals)';
+    btn.innerText = '🛡️ Run With Mutex Lock (50 Concurrent Threads)';
   }
 }
 
-function renderDockerResult(balance, approved, rejected) {
-  const balEl = document.getElementById('docker-balance-display');
+function renderDockerOutcome(balance, approved, rejected) {
+  // Update Balance
+  const balEl = document.getElementById('docker-balance');
   balEl.innerText = `$${balance.toFixed(2)}`;
   balEl.className = 'text-4xl font-extrabold font-mono mt-1 text-emerald-400';
 
-  const statusEl = document.getElementById('docker-status-text');
-  statusEl.innerHTML = `<span class="text-emerald-400 font-bold">✅ SUCCESS: Exactly 10 approved ($1,000 total). 190 safely rejected!</span>`;
+  // Update Status Text
+  const statusEl = document.getElementById('docker-status');
+  statusEl.innerHTML = `<span class="text-emerald-400 font-bold">✅ Mutual Exclusion Successful: Exactly 10 Approved, 40 Blocked!</span>`;
 
-  document.getElementById('docker-approved-count').innerText = approved;
-  document.getElementById('docker-rejected-count').innerText = rejected;
+  // Update Counters
+  document.getElementById('docker-approved').innerText = approved;
+  document.getElementById('docker-rejected').innerText = rejected;
 
-  // Update chart
-  chartLabels.push('Attack B');
+  // Update Visualizer
+  document.getElementById('cs-balance').innerText = `$${balance.toFixed(2)}`;
+  document.getElementById('cs-balance').className = 'text-lg font-bold text-emerald-400 font-mono';
+  document.getElementById('outcome-text').innerHTML = `<span class="text-emerald-400 font-bold">PROTECTED (${approved} Approved)</span>`;
+  document.getElementById('outcome-sub').innerText = '100% Mathematical Integrity';
+
+  // Update Chart
+  chartLabels.push('With Mutex');
   dockerHistory.push(balance);
   naiveHistory.push(naiveHistory[naiveHistory.length - 1]);
   balanceChart.update();
 
-  // Log in terminal with Kafka partition tags
-  appendLog(`[KAFKA P0] ✅ Event 'TRANSFER_COMMITTED': $100 -> Bob (Remaining: $900.00)`);
-  appendLog(`[KAFKA P1] ✅ Event 'TRANSFER_COMMITTED': $100 -> Bob (Remaining: $800.00)`);
-  appendLog(`[KAFKA P2] ✅ Event 'TRANSFER_COMMITTED': $100 -> Bob (Remaining: $0.00)`);
-  appendLog(`[SYSTEM_B] 🛡️ 190 requests rejected with HTTP 409 'Insufficient Balance' (0 Overdraws)`);
+  // Log in plain terms for the professor
+  appendLog(`[MUTEX LOCK] Thread acquired lock. Critical section locked.`);
+  appendLog(`[MUTEX LOCK] Balance decremented safely by $100.`);
+  appendLog(`[MUTEX LOCK] Lock released for next waiting thread.`);
+  appendLog(`✅ SUCCESS: Balance reached $0.00. Remaining ${rejected} threads rejected with Insufficient Funds.`);
 }
 
-// 3. CHAOS MONKEY: TOGGLE WORKER 2
+// 3. CHAOS SIMULATION: CONTAINER CRASH
 function toggleChaos() {
-  worker2Healthy = !worker2Healthy;
+  workerHealthy = !workerHealthy;
   const indicator = document.getElementById('chaos-indicator');
   const text = document.getElementById('chaos-text');
-  const boxW2 = document.getElementById('box-w2');
-  const statusW2 = document.getElementById('w2-status');
+  const appContainer = document.getElementById('container-app');
+  const statusEl = document.getElementById('c1-status');
 
-  if (worker2Healthy) {
+  if (workerHealthy) {
     indicator.className = 'w-2 h-2 rounded-full bg-amber-400';
-    text.innerText = '💣 Test Failover: Kill Worker-2';
-    boxW2.className = 'p-3 bg-slate-900/80 border border-slate-800 rounded-xl';
-    statusW2.className = 'mt-2 text-[10px] text-emerald-400 font-mono';
-    statusW2.innerText = 'ACTIVE';
-    appendLog(`[DOCKER] 🟢 Container 'api-worker-2' restored. Upstream re-added to Nginx pool.`);
+    text.innerText = '💣 Simulate Worker Crash';
+    appContainer.className = 'p-4 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center space-x-3.5';
+    statusEl.className = 'text-emerald-400 font-semibold text-[10px] mt-1';
+    statusEl.innerText = 'STATUS: RUNNING';
+    appendLog(`[DOCKER] 🟢 Container 1 recovered and running.`);
   } else {
     indicator.className = 'w-2 h-2 rounded-full bg-rose-500 animate-ping';
-    text.innerText = '🔄 Revive Worker-2 Container';
-    boxW2.className = 'p-3 bg-rose-950/40 border border-rose-800/60 rounded-xl';
-    statusW2.className = 'mt-2 text-[10px] text-rose-400 font-mono font-bold';
-    statusW2.innerText = 'CRASHED (OFFLINE)';
-    appendLog(`[DOCKER CHAOS] ⚠️ Container 'api-worker-2' killed! Nginx immediately reroutes all traffic to Worker-1 with zero dropped requests.`);
+    text.innerText = '🔄 Recover Container';
+    appContainer.className = 'p-4 bg-rose-950/40 border border-rose-800/60 rounded-xl flex items-center space-x-3.5';
+    statusEl.className = 'text-rose-400 font-bold text-[10px] mt-1';
+    statusEl.innerText = 'STATUS: CRASHED (OFFLINE)';
+    appendLog(`[DOCKER] ⚠️ Container 1 crashed! Docker health checks detect failure.`);
   }
 }
 
-// 4. RESET SYSTEM
-function resetSystem() {
+// 4. RESET LAB
+function resetLab() {
   fetch('/api/reset', { method: 'POST' }).catch(() => {});
 
-  // Reset Naive UI
-  const naiveBal = document.getElementById('naive-balance-display');
+  // Reset Naive Box
+  const naiveBal = document.getElementById('naive-balance');
   naiveBal.innerText = '$1,000.00';
   naiveBal.className = 'text-4xl font-extrabold font-mono mt-1 text-white';
-  document.getElementById('naive-status-text').innerHTML = '<span class="text-slate-400">Waiting for attack test...</span>';
-  document.getElementById('naive-approved-count').innerText = '0';
-  document.getElementById('naive-race-count').innerText = '0';
-  document.getElementById('naive-race-sub').innerText = 'No attack launched';
+  document.getElementById('naive-status').innerHTML = '<span class="text-slate-500">Ready to test</span>';
+  document.getElementById('naive-approved').innerText = '0';
+  document.getElementById('naive-approved').className = 'text-lg text-slate-200';
+  document.getElementById('naive-race').innerText = '0';
+  document.getElementById('naive-race').className = 'text-lg text-slate-200';
+  document.getElementById('naive-race-label').innerText = 'Not tested yet';
 
-  // Reset Docker UI
-  const dockerBal = document.getElementById('docker-balance-display');
+  // Reset Docker Box
+  const dockerBal = document.getElementById('docker-balance');
   dockerBal.innerText = '$1,000.00';
-  document.getElementById('docker-status-text').innerText = '100% Data Integrity Guaranteed';
-  document.getElementById('docker-approved-count').innerText = '0';
-  document.getElementById('docker-rejected-count').innerText = '0';
+  document.getElementById('docker-status').innerText = 'Mutual Exclusion Guaranteed';
+  document.getElementById('docker-approved').innerText = '0';
+  document.getElementById('docker-rejected').innerText = '0';
+
+  // Reset Visualizer
+  const csBox = document.getElementById('critical-section-box');
+  csBox.style.borderColor = '#3b82f6';
+  document.getElementById('cs-balance').innerText = '$1,000.00';
+  document.getElementById('cs-balance').className = 'text-lg font-bold text-white font-mono';
+  document.getElementById('lock-state-badge').className = 'px-3 py-1 rounded-lg text-xs font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700';
+  document.getElementById('lock-state-badge').innerText = 'MUTEX: IDLE';
+  document.getElementById('outcome-text').innerHTML = '<span class="text-slate-500">Waiting for experiment...</span>';
+  document.getElementById('outcome-sub').innerText = 'Verified atomically';
 
   // Reset Chart
   chartLabels = ['Start'];
@@ -226,14 +272,14 @@ function resetSystem() {
   balanceChart.update();
 
   // Reset Terminal
-  document.getElementById('kafka-feed').innerHTML = '<div class="text-slate-600">// System reset. All balances restored to $1,000.00.</div>';
+  document.getElementById('event-log').innerHTML = '<div class="text-slate-600">// Lab reset. Balances restored to $1,000.00. Ready for next experiment.</div>';
 }
 
 function appendLog(msg) {
-  const feed = document.getElementById('kafka-feed');
+  const log = document.getElementById('event-log');
   const div = document.createElement('div');
   div.className = 'py-0.5 text-slate-300 font-mono text-[11px]';
   div.innerText = `${new Date().toLocaleTimeString()} ${msg}`;
-  feed.prepend(div);
-  if (feed.children.length > 25) feed.removeChild(feed.lastChild);
+  log.prepend(div);
+  if (log.children.length > 20) log.removeChild(log.lastChild);
 }

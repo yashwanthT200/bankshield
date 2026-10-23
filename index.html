@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>BankShield • High-Concurrency Banking Demonstration</title>
+  <title>BankShield • OS Concurrency & Race Condition Laboratory</title>
   
   <!-- Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,227 +30,264 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="styles.css?v=20261022_v3">
+  <link rel="stylesheet" href="styles.css?v=20261023_clean">
 </head>
 <body class="bg-[#0b0f17] text-slate-100 min-h-screen font-sans text-sm antialiased selection:bg-blue-600 selection:text-white">
 
-  <!-- Top Simple Navigation -->
-  <header class="border-b border-slate-800 bg-[#0e1422]/90 backdrop-blur sticky top-0 z-50 px-6 py-3">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-[#0e1422]/90 backdrop-blur sticky top-0 z-50 px-6 py-3.5">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
       
-      <!-- Logo & Title -->
       <div class="flex items-center space-x-3">
-        <div class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-base shadow-sm">
-          🛡️
+        <div class="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white text-lg shadow-sm">
+          🏦
         </div>
         <div>
           <div class="flex items-center space-x-2">
             <h1 class="font-bold text-base text-white tracking-tight">BankShield</h1>
-            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-950 text-blue-400 border border-blue-800/60">OS Project Demo</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-950 text-blue-400 border border-blue-800/60 font-mono">OS CONCURRENCY LAB</span>
           </div>
-          <p class="text-xs text-slate-400">High-Concurrency Banking & Race Condition Prevention</p>
+          <p class="text-xs text-slate-400">Process Synchronization, Critical Sections & Docker Isolation</p>
         </div>
       </div>
 
-      <!-- Quick Reset Button -->
-      <button onclick="resetSystem()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition flex items-center space-x-1.5">
-        <span>🔄 Reset All Balances to $1,000</span>
+      <!-- Quick Reset -->
+      <button onclick="resetLab()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition flex items-center space-x-2">
+        <span>🔄 Reset to $1,000</span>
       </button>
 
     </div>
   </header>
 
   <!-- Main Container -->
-  <main class="max-w-6xl mx-auto px-6 py-6 space-y-6">
+  <main class="max-w-5xl mx-auto px-6 py-6 space-y-6">
 
-    <!-- The 10-Second Problem Explainer Box (Super easy for the professor to read) -->
-    <div class="bg-gradient-to-r from-slate-900 to-[#121829] border border-slate-800 rounded-xl p-5 shadow-sm">
-      <div class="flex items-start justify-between gap-4">
-        <div class="space-y-1">
-          <div class="text-[11px] font-mono uppercase tracking-wider text-blue-400 font-semibold">The Core Problem We Are Solving:</div>
-          <h2 class="text-lg font-bold text-white">
-            Alice has <span class="text-emerald-400 underline decoration-emerald-500/50">$1,000.00</span> in her account. What happens when <span class="text-amber-400">200 people</span> try to withdraw $100 simultaneously?
-          </h2>
-          <p class="text-xs text-slate-400 leading-relaxed pt-1">
-            <strong>The Mathematical Rule:</strong> Only <strong>10 withdrawals</strong> ($1,000 ÷ $100) should succeed. The other 190 must be safely rejected. Watch below how a standard server fails vs how our Dockerized cluster succeeds.
-          </p>
+    <!-- 1. The Simple Problem Statement (In Plain English for the Professor) -->
+    <div class="bg-gradient-to-r from-slate-900 to-[#121829] border border-slate-800 rounded-2xl p-6 shadow-sm">
+      <div class="space-y-2">
+        <div class="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-mono">
+          <span>OPERATING SYSTEMS EXPERIMENT</span>
         </div>
+        <h2 class="text-xl font-bold text-white">
+          The Problem: Alice has <span class="text-emerald-400 font-mono">$1,000.00</span> in her account.
+        </h2>
+        <p class="text-slate-300 text-sm leading-relaxed">
+          Suppose <strong>50 concurrent threads</strong> attempt to withdraw $100 at the exact same millisecond.
+          <br>
+          <span class="text-slate-400 text-xs">
+            • <strong>Expected Correct Behavior:</strong> Only <strong>10 withdrawals</strong> should succeed ($1,000 ÷ $100 = 10). The other 40 must be rejected.
+            <br>
+            • <strong>Without Mutex:</strong> A <strong>Race Condition</strong> occurs in the Critical Section, allowing more than 10 people to withdraw money!
+          </span>
+        </p>
       </div>
     </div>
 
-    <!-- THE SIDE-BY-SIDE COMPARISON (The Core Demo) -->
+    <!-- 2. Interactive Testing Deck (Side-by-Side: Unsynchronized vs Mutex Lock) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-      <!-- SYSTEM 1: NAIVE MONOLITH (Fails on purpose) -->
-      <div class="bg-[#101524] border-2 border-rose-900/40 rounded-2xl p-6 flex flex-col justify-between space-y-5 relative overflow-hidden shadow-lg">
+      <!-- TEST 1: WITHOUT MUTEX LOCK (VULNERABLE) -->
+      <div class="bg-[#101524] border-2 border-rose-900/50 rounded-2xl p-6 flex flex-col justify-between space-y-5 shadow-lg relative overflow-hidden">
         <div class="absolute top-0 right-0 bg-rose-600 text-white font-mono text-[10px] uppercase font-bold px-3 py-1 rounded-bl-lg">
-          Vulnerable Monolith
+          No Synchronization
         </div>
 
         <div>
-          <div class="flex items-center space-x-2 text-rose-400 text-xs font-mono font-semibold">
-            <span>❌ SYSTEM A: WITHOUT DOCKER & LOCKS</span>
+          <div class="text-xs font-mono font-semibold text-rose-400 flex items-center space-x-1.5">
+            <span>❌ EXPERIMENT A: WITHOUT MUTEX LOCK</span>
           </div>
-          <div class="text-slate-400 text-xs mt-1">Standard Node/Python app with raw database queries.</div>
+          <div class="text-slate-400 text-xs mt-1">Threads access shared memory simultaneously without locks.</div>
 
-          <!-- Giant Balance Display -->
-          <div class="mt-4 p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+          <!-- Balance Display Card -->
+          <div class="mt-4 p-5 rounded-xl bg-slate-900/90 border border-slate-800 text-center">
             <span class="text-xs text-slate-500 uppercase tracking-wider font-mono">Alice's Final Balance</span>
-            <div class="text-4xl font-extrabold font-mono mt-1 text-white" id="naive-balance-display">$1,000.00</div>
-            <div class="text-xs mt-2 font-mono" id="naive-status-text">
-              <span class="text-slate-400">Waiting for attack test...</span>
+            <div class="text-4xl font-extrabold font-mono mt-1 text-white" id="naive-balance">$1,000.00</div>
+            <div class="text-xs mt-2.5 font-mono" id="naive-status">
+              <span class="text-slate-500">Ready to test</span>
             </div>
           </div>
 
-          <!-- Outcome Metrics -->
+          <!-- Key Metrics -->
           <div class="grid grid-cols-2 gap-3 mt-4 text-xs font-mono">
-            <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800/80">
-              <span class="text-slate-500 block text-[11px]">Withdrawals Approved:</span>
-              <strong class="text-base text-slate-200" id="naive-approved-count">0</strong>
-              <span class="text-slate-500 text-[10px] block">(Should never exceed 10)</span>
+            <div class="p-3 bg-slate-900/70 rounded-xl border border-slate-800">
+              <span class="text-slate-500 block text-[11px]">Withdrawals Allowed:</span>
+              <strong class="text-lg text-slate-200" id="naive-approved">0</strong>
+              <span class="text-slate-500 text-[10px] block">(Max allowed: 10)</span>
             </div>
-            <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800/80">
+            <div class="p-3 bg-slate-900/70 rounded-xl border border-slate-800">
               <span class="text-slate-500 block text-[11px]">Race Conditions:</span>
-              <strong class="text-base text-slate-200" id="naive-race-count">0</strong>
-              <span class="text-slate-500 text-[10px] block" id="naive-race-sub">No attack launched</span>
+              <strong class="text-lg text-slate-200" id="naive-race">0</strong>
+              <span class="text-slate-500 text-[10px] block" id="naive-race-label">Not tested yet</span>
             </div>
           </div>
         </div>
 
-        <!-- Big Launch Button (Vibrant Red) -->
-        <button onclick="runNaiveAttack()" id="btn-run-naive" style="background-color: #e11d48 !important; color: #ffffff !important;" class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition hover:opacity-95 flex items-center justify-center space-x-2 shadow-lg cursor-pointer">
-          <span>⚡ ATTACK SYSTEM A (Without Locks)</span>
+        <!-- Big Launch Button -->
+        <button onclick="runNaiveExperiment()" id="btn-naive" style="background-color: #e11d48 !important; color: #ffffff !important;" class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition hover:opacity-95 flex items-center justify-center space-x-2 shadow-lg cursor-pointer">
+          <span>⚡ Run Without Mutex (50 Concurrent Threads)</span>
         </button>
       </div>
 
-      <!-- SYSTEM 2: BANKSHIELD DOCKER CLUSTER (Wins cleanly) -->
-      <div class="bg-[#101524] border-2 border-emerald-900/40 rounded-2xl p-6 flex flex-col justify-between space-y-5 relative overflow-hidden shadow-lg">
+      <!-- TEST 2: WITH MUTEX LOCK & DOCKER (PROTECTED) -->
+      <div class="bg-[#101524] border-2 border-emerald-900/50 rounded-2xl p-6 flex flex-col justify-between space-y-5 shadow-lg relative overflow-hidden">
         <div class="absolute top-0 right-0 bg-emerald-600 text-white font-mono text-[10px] uppercase font-bold px-3 py-1 rounded-bl-lg">
-          Protected Docker Mesh
+          Protected By Mutex
         </div>
 
         <div>
-          <div class="flex items-center space-x-2 text-emerald-400 text-xs font-mono font-semibold">
-            <span>✅ SYSTEM B: BANKSHIELD CLUSTER</span>
+          <div class="text-xs font-mono font-semibold text-emerald-400 flex items-center space-x-1.5">
+            <span>✅ EXPERIMENT B: WITH MUTEX LOCK & DOCKER</span>
           </div>
-          <div class="text-slate-400 text-xs mt-1">Docker Compose + Nginx + Redis Distributed Lock + Kafka.</div>
+          <div class="text-slate-400 text-xs mt-1">Threads lock the Critical Section before reading/writing balance.</div>
 
-          <!-- Giant Balance Display -->
-          <div class="mt-4 p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+          <!-- Balance Display Card -->
+          <div class="mt-4 p-5 rounded-xl bg-slate-900/90 border border-slate-800 text-center">
             <span class="text-xs text-slate-500 uppercase tracking-wider font-mono">Alice's Final Balance</span>
-            <div class="text-4xl font-extrabold font-mono mt-1 text-emerald-400" id="docker-balance-display">$1,000.00</div>
-            <div class="text-xs mt-2 font-mono text-emerald-400 font-semibold" id="docker-status-text">
-              100% Data Integrity Guaranteed
+            <div class="text-4xl font-extrabold font-mono mt-1 text-emerald-400" id="docker-balance">$1,000.00</div>
+            <div class="text-xs mt-2.5 font-mono text-emerald-400 font-semibold" id="docker-status">
+              Mutual Exclusion Guaranteed
             </div>
           </div>
 
-          <!-- Outcome Metrics -->
+          <!-- Key Metrics -->
           <div class="grid grid-cols-2 gap-3 mt-4 text-xs font-mono">
-            <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800/80">
-              <span class="text-slate-500 block text-[11px]">Withdrawals Approved:</span>
-              <strong class="text-base text-emerald-400" id="docker-approved-count">0</strong>
+            <div class="p-3 bg-slate-900/70 rounded-xl border border-slate-800">
+              <span class="text-slate-500 block text-[11px]">Withdrawals Allowed:</span>
+              <strong class="text-lg text-emerald-400" id="docker-approved">0</strong>
               <span class="text-slate-500 text-[10px] block">(Strictly stops at 10)</span>
             </div>
-            <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800/80">
-              <span class="text-slate-500 block text-[11px]">Safely Rejected:</span>
-              <strong class="text-base text-slate-300" id="docker-rejected-count">0</strong>
-              <span class="text-slate-500 text-[10px] block">409 Insufficient Balance</span>
+            <div class="p-3 bg-slate-900/70 rounded-xl border border-slate-800">
+              <span class="text-slate-500 block text-[11px]">Safely Blocked:</span>
+              <strong class="text-lg text-slate-300" id="docker-rejected">0</strong>
+              <span class="text-slate-500 text-[10px] block">Insufficient Balance</span>
             </div>
           </div>
         </div>
 
-        <!-- Big Launch Button (Vibrant Emerald Green) -->
-        <button onclick="runDockerAttack()" id="btn-run-docker" style="background-color: #059669 !important; color: #ffffff !important;" class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition hover:opacity-95 flex items-center justify-center space-x-2 shadow-lg cursor-pointer">
-          <span>🛡️ ATTACK SYSTEM B (With Docker & Locks)</span>
+        <!-- Big Launch Button -->
+        <button onclick="runDockerExperiment()" id="btn-docker" style="background-color: #059669 !important; color: #ffffff !important;" class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition hover:opacity-95 flex items-center justify-center space-x-2 shadow-lg cursor-pointer">
+          <span>🛡️ Run With Mutex Lock (50 Concurrent Threads)</span>
         </button>
       </div>
 
     </div>
 
-    <!-- DOCKER ARCHITECTURE EXPLAINER (Shows the professor the Docker containers) -->
-    <div class="bg-[#101524] border border-slate-800 rounded-xl p-5 space-y-4">
+    <!-- 3. Critical Section Visualizer (Textbook OS Concept) -->
+    <div class="bg-[#101524] border border-slate-800 rounded-2xl p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
         <div>
-          <h3 class="font-bold text-sm text-white">How Docker Solves This: The Multi-Container Mesh</h3>
-          <p class="text-xs text-slate-400">All 6 services orchestrated via <code class="text-blue-400">docker-compose.yml</code></p>
+          <h3 class="font-bold text-sm text-white">Critical Section Visualizer</h3>
+          <p class="text-xs text-slate-400">See how Mutual Exclusion protects the shared bank balance in real time.</p>
         </div>
-        <!-- Chaos Engineering Button -->
-        <button onclick="toggleChaos()" id="btn-chaos" class="px-3 py-1.5 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-300 hover:bg-amber-900/60 text-xs font-mono transition flex items-center space-x-1.5">
-          <span class="w-2 h-2 rounded-full bg-amber-400" id="chaos-indicator"></span>
-          <span id="chaos-text">💣 Test Failover: Kill Worker-2</span>
-        </button>
+        <div id="lock-state-badge" class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">
+          MUTEX: IDLE
+        </div>
       </div>
 
-      <!-- Container Cards Grid -->
-      <div class="grid grid-cols-2 md:grid-cols-6 gap-3 text-center text-xs">
+      <!-- Critical Section Diagram -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center font-mono text-xs">
         
-        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
-          <div class="text-lg">🔀</div>
-          <div class="font-bold text-slate-200 mt-1">Nginx</div>
-          <div class="text-[10px] text-slate-500 font-mono">Load Balancer (:80)</div>
-          <div class="mt-2 text-[10px] text-emerald-400 font-mono">HEALTHY</div>
+        <!-- Left: Incoming Threads -->
+        <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-xl text-center space-y-2">
+          <span class="text-slate-400 block font-semibold">1. Incoming Threads</span>
+          <div class="flex justify-center space-x-1.5 py-2" id="threads-pool">
+            <span class="w-3 h-3 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+            <span class="w-3 h-3 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+            <span class="w-3 h-3 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+            <span class="w-3 h-3 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+            <span class="w-3 h-3 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+          </div>
+          <span class="text-[11px] text-slate-500 block">50 Concurrent Threads</span>
         </div>
 
-        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl" id="box-w1">
-          <div class="text-lg">⚙️</div>
-          <div class="font-bold text-slate-200 mt-1">API Worker 1</div>
-          <div class="text-[10px] text-slate-500 font-mono">Port :8001</div>
-          <div class="mt-2 text-[10px] text-emerald-400 font-mono" id="w1-status">ACTIVE</div>
+        <!-- Center: Critical Section -->
+        <div class="p-4 rounded-xl border-2 text-center space-y-2 transition-all duration-300" id="critical-section-box" style="background-color: #0d1322; border-color: #3b82f6;">
+          <span class="text-blue-400 block font-bold text-xs" id="cs-title">2. CRITICAL SECTION</span>
+          <div class="text-lg font-bold text-white font-mono" id="cs-balance">$1,000.00</div>
+          <span class="text-[11px] text-slate-400 block" id="cs-desc">Shared Account Balance</span>
         </div>
 
-        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl" id="box-w2">
-          <div class="text-lg">⚙️</div>
-          <div class="font-bold text-slate-200 mt-1">API Worker 2</div>
-          <div class="text-[10px] text-slate-500 font-mono">Port :8002</div>
-          <div class="mt-2 text-[10px] text-emerald-400 font-mono" id="w2-status">ACTIVE</div>
-        </div>
-
-        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
-          <div class="text-lg">⚡</div>
-          <div class="font-bold text-slate-200 mt-1">Redis 7</div>
-          <div class="text-[10px] text-slate-500 font-mono">Distributed Lock</div>
-          <div class="mt-2 text-[10px] text-blue-400 font-mono">REDLOCK</div>
-        </div>
-
-        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
-          <div class="text-lg">🗄️</div>
-          <div class="font-bold text-slate-200 mt-1">Postgres 15</div>
-          <div class="text-[10px] text-slate-500 font-mono">ACID Ledger</div>
-          <div class="mt-2 text-[10px] text-blue-400 font-mono">ROW-LOCK</div>
-        </div>
-
-        <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
-          <div class="text-lg">📨</div>
-          <div class="font-bold text-slate-200 mt-1">Apache Kafka</div>
-          <div class="text-[10px] text-slate-500 font-mono">Event Sourcing</div>
-          <div class="mt-2 text-[10px] text-amber-400 font-mono" id="kafka-count-badge">3 PARTITIONS</div>
+        <!-- Right: Execution Outcome -->
+        <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-xl text-center space-y-2">
+          <span class="text-slate-400 block font-semibold">3. Thread Outcome</span>
+          <div class="text-xs font-mono py-1" id="outcome-text">
+            <span class="text-slate-500">Waiting for experiment...</span>
+          </div>
+          <span class="text-[11px] text-slate-500 block" id="outcome-sub">Verified atomically</span>
         </div>
 
       </div>
     </div>
 
-    <!-- LIVE BALANCE CHART & TRANSACTION STREAM -->
+    <!-- 4. Docker Container Isolation Strip -->
+    <div class="bg-[#101524] border border-slate-800 rounded-2xl p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <div>
+          <h3 class="font-bold text-sm text-white">Docker Container Architecture</h3>
+          <p class="text-xs text-slate-400">Processes running in isolated Linux namespaces & cgroups via Docker.</p>
+        </div>
+        <!-- Chaos Test Button -->
+        <button onclick="toggleChaos()" id="btn-chaos" class="px-3.5 py-1.5 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-300 hover:bg-amber-900/60 text-xs font-mono transition flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-amber-400" id="chaos-indicator"></span>
+          <span id="chaos-text">💣 Simulate Worker Crash</span>
+        </button>
+      </div>
+
+      <!-- Clean 3-Box Docker Architecture -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+        
+        <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center space-x-3.5" id="container-app">
+          <div class="text-2xl">🐳</div>
+          <div>
+            <div class="font-bold text-slate-200">Container 1: Banking Server</div>
+            <div class="text-slate-500 text-[11px]">Handles withdrawal requests</div>
+            <div class="text-emerald-400 font-semibold text-[10px] mt-1" id="c1-status">STATUS: RUNNING</div>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center space-x-3.5">
+          <div class="text-2xl">🔒</div>
+          <div>
+            <div class="font-bold text-slate-200">Container 2: Mutex Lock Manager</div>
+            <div class="text-slate-500 text-[11px]">Atomic Mutual Exclusion (Redis)</div>
+            <div class="text-emerald-400 font-semibold text-[10px] mt-1">STATUS: RUNNING</div>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center space-x-3.5">
+          <div class="text-2xl">💾</div>
+          <div>
+            <div class="font-bold text-slate-200">Container 3: Database Storage</div>
+            <div class="text-slate-500 text-[11px]">Persistent Volume Ledger</div>
+            <div class="text-emerald-400 font-semibold text-[10px] mt-1">STATUS: RUNNING</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 5. Real-Time Balance Graph & Live Event Log -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       
-      <!-- Chart Card -->
-      <div class="bg-[#101524] border border-slate-800 rounded-xl p-5 space-y-3">
+      <!-- Graph -->
+      <div class="bg-[#101524] border border-slate-800 rounded-2xl p-5 space-y-3">
         <div class="flex items-center justify-between">
-          <h4 class="font-bold text-xs uppercase tracking-wider text-slate-300">Live Balance Trajectory</h4>
-          <span class="text-[11px] font-mono text-slate-500">Real-time Drain</span>
+          <h4 class="font-bold text-xs uppercase tracking-wider text-slate-300">Balance Trajectory Graph</h4>
+          <span class="text-[11px] font-mono text-slate-500">Live Comparison</span>
         </div>
-        <div class="h-52 w-full relative">
+        <div class="h-48 w-full relative">
           <canvas id="balanceChart"></canvas>
         </div>
       </div>
 
-      <!-- Live Kafka & Ledger Event Stream -->
-      <div class="bg-[#101524] border border-slate-800 rounded-xl p-5 space-y-3">
+      <!-- Log Terminal -->
+      <div class="bg-[#101524] border border-slate-800 rounded-2xl p-5 space-y-3">
         <div class="flex items-center justify-between">
-          <h4 class="font-bold text-xs uppercase tracking-wider text-slate-300">Kafka Event Stream & Ledger</h4>
-          <span class="text-[11px] font-mono text-slate-500" id="live-rps-text">0 req/s • 12ms latency</span>
+          <h4 class="font-bold text-xs uppercase tracking-wider text-slate-300">Execution Log & Critical Section Events</h4>
+          <span class="text-[11px] font-mono text-slate-500">Live Thread Audit</span>
         </div>
-        <div id="kafka-feed" class="bg-black/70 rounded-lg p-3 font-mono text-[11px] h-52 overflow-y-auto space-y-1.5 border border-slate-900">
-          <div class="text-slate-600">// Waiting to record events. Click an attack button above.</div>
+        <div id="event-log" class="bg-black/70 rounded-xl p-3 font-mono text-[11px] h-48 overflow-y-auto space-y-1.5 border border-slate-900">
+          <div class="text-slate-600">// Ready. Click one of the test buttons above to view live thread execution.</div>
         </div>
       </div>
 
@@ -259,10 +296,10 @@
   </main>
 
   <!-- Clean Footer -->
-  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-    BankShield • Operating Systems & Distributed Architecture Laboratory Project • Repository: <a href="https://github.com/yashwanthT200/bankshield" target="_blank" class="text-blue-400 hover:underline">github.com/yashwanthT200/bankshield</a>
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 font-mono">
+    BankShield • Operating Systems Laboratory Project • Concurrency, Synchronization & Docker
   </footer>
 
-  <script src="app.js?v=20261022_v3"></script>
+  <script src="app.js?v=20261023_clean"></script>
 </body>
 </html>
